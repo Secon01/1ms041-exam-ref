@@ -139,9 +139,11 @@
 
     <div class="section-header">Cheat Sheets</div>
     <a href="#prob-bayes">Probability & Bayes</a>
+    <a href="#lcg-theory">LCG & Accept-Reject</a>
 
     <div class="section-header">Code Snippets</div>
     <a href="#snip-binom">Binomial Utils</a>
+    <a href="#snip-lcg">LCG & Sampler</a>
 
     <div class="section-header">Solved Exams</div>
     <a href="#exam-2022">2022 Exam</a>
@@ -166,7 +168,7 @@
     <div class="card">
       <h3>✅ Solved Exams</h3>
       <p>Clean, commented solutions built problem by problem.</p>
-      <span class="tag tag-green">2022 P1 done</span>
+      <span class="tag tag-green">2022 P1+P2 done</span>
     </div>
   </div>
 
@@ -202,6 +204,53 @@
   <p><strong>Key insight:</strong> marginalise over all values of the conditioning variable. The numerator restricts the outer sum to the "bad" cases ($n < 10$).</p>
   <p><strong>Edge case:</strong> if $T - n \leq 0$, then $P(Z \geq T-n \mid N=n) = 1$.</p>
 
+  <!-- ══ CHEAT SHEET: LCG & ACCEPT-REJECT ══ -->
+  <h2 id="lcg-theory">📐 Cheat Sheet — LCG & Accept-Reject Sampling</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: 2022 Exam Problem 2</p>
+
+  <h3>Linear Congruential Generator (LCG)</h3>
+  <p>Generates a sequence of pseudo-random integers via the recurrence:</p>
+  <div class="math-block">
+    $$u_{n+1} = (a \cdot u_n + b) \bmod M$$
+  </div>
+  <table>
+    <tr><th>Parameter</th><th>Role</th></tr>
+    <tr><td>$M$</td><td>Modulus — integers live in $\{0,1,\ldots,M-1\}$; also the period ceiling</td></tr>
+    <tr><td>$a$</td><td>Multiplier</td></tr>
+    <tr><td>$b$</td><td>Increment</td></tr>
+    <tr><td>seed $u_0$</td><td>Starting value</td></tr>
+  </table>
+
+  <h3>Hull-Dobell Theorem — Full Period Conditions</h3>
+  <p>An LCG achieves full period $M$ (visits every integer in $\{0,\ldots,M-1\}$ before repeating) if and only if <strong>all three</strong> hold:</p>
+  <ol>
+    <li>$\gcd(b,\, M) = 1$ — $b$ and $M$ share no common factor</li>
+    <li>Every prime factor $p$ of $M$ divides $(a - 1)$</li>
+    <li>If $4 \mid M$, then $4 \mid (a - 1)$</li>
+  </ol>
+  <div class="callout">💡 For $M = 2^k$: the only prime factor is 2, so conditions 2 &amp; 3 reduce to: $a$ must be odd and $a - 1$ must be divisible by 4. Simplest valid choice: $a = 5$ or $a = 9$, $b = 1$.</div>
+
+  <h3>Uniform $[0,1]$ from LCG</h3>
+  <p>Divide each LCG output by the period $M$:</p>
+  <div class="math-block">
+    $$U_n = \frac{u_n}{M} \in [0,\, 1)$$
+  </div>
+
+  <h3>Accept-Reject Sampling</h3>
+  <p>Goal: sample from target density $p_0(x)$ using a proposal $q(x)$ you can already sample from.</p>
+  <ol>
+    <li>Find $C = \sup_x \dfrac{p_0(x)}{q(x)}$</li>
+    <li>Draw candidate $x \sim q$</li>
+    <li>Draw $u \sim \text{Uniform}[0,1]$ independently</li>
+    <li>Accept $x$ if $u \leq \dfrac{p_0(x)}{C \cdot q(x)}$, otherwise reject and repeat</li>
+  </ol>
+  <p><strong>For $p_0(x) = \frac{\pi}{2}|\sin(2\pi x)|$ with $q = \text{Uniform}[0,1]$:</strong></p>
+  <div class="math-block">
+    $$C = \sup_x \frac{\pi}{2}|\sin(2\pi x)| = \frac{\pi}{2}$$
+    $$\text{Accept if } u \leq \frac{p_0(x)}{C} = |\sin(2\pi x)|$$
+  </div>
+  <div class="callout">⚠️ Each iteration needs <strong>two independent</strong> uniform numbers: one for $x$, one for $u$. Advance the seed by 2 each iteration to avoid reusing the same pair.</div>
+
   <!-- ══ SNIPPET ══ -->
   <h2 id="snip-binom">💻 Snippet — Binomial Utils</h2>
   <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Used in: 2022 Exam Problem 1</p>
@@ -219,6 +268,47 @@ def binom_pmf(k, n, p):
 def binom_tail(k, n, p):
     """P(X >= k) for X ~ Binom(n, p)"""
     return sum(binom_pmf(z, n, p) for z in range(k, n + 1))
+</code></pre>
+
+  <!-- ══ SNIPPET: LCG & SAMPLER ══ -->
+  <h2 id="snip-lcg">💻 Snippet — LCG & Accept-Reject Sampler</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Used in: 2022 Exam Problem 2</p>
+
+<pre><code class="language-python">import math
+
+# ── Part 1: Linear Congruential Generator ──────────────────────────────────
+def problem2_LCG(size=None, seed=0):
+    M, a, b = 512, 9, 1          # Hull-Dobell verified: gcd(1,512)=1, 2|(9-1), 4|(9-1)
+    u = seed
+    numbers = []
+    for _ in range(size):
+        u = (a * u + b) % M
+        numbers.append(u)
+    return numbers
+
+# ── Part 2: Uniform [0,1] from LCG ────────────────────────────────────────
+def problem2_uniform(generator=None, period=1, size=None, seed=0):
+    return [n / period for n in generator(size=size, seed=seed)]
+
+# ── Part 3: Accept-Reject sampler ─────────────────────────────────────────
+def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, seed=0):
+    if size is None:
+        size = n_iterations
+    samples = []
+    while len(samples) < size:
+        pair = uniformGenerator(size=2, seed=seed)
+        x, u = pair[0], pair[1]
+        if u <= abs(math.sin(2 * math.pi * x)):   # C = pi/2 cancels
+            samples.append(x)
+        seed += 2    # advance seed so each iteration uses a fresh pair
+    return samples
+
+# ── Usage ──────────────────────────────────────────────────────────────────
+period = 512
+uniform_sampler = lambda size, seed: problem2_uniform(
+    generator=problem2_LCG, period=period, size=size, seed=seed
+)
+samples = problem2_accept_reject(uniformGenerator=uniform_sampler, n_iterations=100, seed=1)
 </code></pre>
 
   <!-- ══ SOLVED EXAMS ══ -->
@@ -277,6 +367,62 @@ for t in range(0, 21):
         break
 
 problem12_T = smallest_t  # → 17
+</code></pre>
+
+  <!-- ── Problem 2 ── -->
+  <h3>Problem 2 — Random Variable Generation &amp; Transformation <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>The purpose of this problem is to show that you can implement your own sampler, this will be built in the following three steps:</p>
+    <ol>
+      <li><strong>[2p]</strong> Implement a Linear Congruential Generator where you tested out a good combination (a large $M$ with $a, b$ satisfying the Hull-Dobell (Thm 6.8)) of parameters. Follow the instructions in the code block.</li>
+      <li><strong>[2p]</strong> Using a generator construct random numbers from the uniform $[0,1]$ distribution.</li>
+      <li><strong>[4p]</strong> Using a uniform $[0,1]$ random generator, generate samples from
+        $$p_0(x) = \frac{\pi}{2}|\sin(2\pi x)|, \quad x \in [0,1]$$
+        using the <strong>Accept-Reject</strong> sampler (<strong>Algorithm 1</strong> in TFDS notes) with sampling density given by the uniform $[0,1]$ distribution.</li>
+    </ol>
+  </div>
+
+  <h4>Setup</h4>
+  <ul>
+    <li>Parameters chosen: $M = 512 = 2^9$, $a = 9$, $b = 1$ — all three Hull-Dobell conditions verified ✓</li>
+    <li>Uniform $[0,1]$ obtained by dividing LCG output by period $M = 512$</li>
+    <li>Accept-Reject proposal: $q = \text{Uniform}[0,1]$, so $C = \pi/2$, acceptance condition simplifies to $u \leq |\sin(2\pi x)|$</li>
+    <li>Each iteration consumes 2 uniform numbers; seed is advanced by 2 to avoid cycling on the same pair</li>
+  </ul>
+
+  <h4>Part 1 (2p) — Linear Congruential Generator</h4>
+<pre><code class="language-python">def problem2_LCG(size=None, seed=0):
+    M, a, b = 512, 9, 1
+    u = seed
+    numbers = []
+    for _ in range(size):
+        u = (a * u + b) % M
+        numbers.append(u)
+    return numbers
+</code></pre>
+
+  <h4>Part 2 (2p) — Uniform [0,1] Sampler</h4>
+<pre><code class="language-python">def problem2_uniform(generator=None, period=1, size=None, seed=0):
+    return [n / period for n in generator(size=size, seed=seed)]
+</code></pre>
+
+  <h4>Part 3 (4p) — Accept-Reject Sampler</h4>
+  <p>Key: $C = \pi/2$ cancels with $p_0(x)$, leaving acceptance condition $u \leq |\sin(2\pi x)|$.</p>
+<pre><code class="language-python">import math
+
+def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, seed=0):
+    if size is None:
+        size = n_iterations
+    samples = []
+    while len(samples) < size:
+        pair = uniformGenerator(size=2, seed=seed)
+        x, u = pair[0], pair[1]
+        if u <= abs(math.sin(2 * math.pi * x)):
+            samples.append(x)
+        seed += 2
+    return samples
 </code></pre>
 
 
