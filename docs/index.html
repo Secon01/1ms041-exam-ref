@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>1MS041 Exam Reference — Sotiris</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"/>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] } };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <style>
+    :root {
+      --navy:    #1a3a6b;
+      --navy2:   #1e4080;
+      --blue:    #2563eb;
+      --blue-lt: #eff6ff;
+      --blue-bd: #bfdbfe;
+      --green:   #059669;
+      --green-lt:#ecfdf5;
+      --green-bd:#6ee7b7;
+      --bg:      #f1f5f9;
+      --surface: #ffffff;
+      --border:  #e2e8f0;
+      --text:    #1e293b;
+      --muted:   #64748b;
+      --code-bg: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+
+    /* ── Top nav bar ── */
+    .topbar { position: fixed; top: 0; left: 0; right: 0; height: 54px; background: var(--navy); display: flex; align-items: center; padding: 0 24px; z-index: 200; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+    .topbar-title { color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .topbar-title .icon { font-size: 18px; }
+    .topbar-spacer { flex: 1; }
+    .topbar-search { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 6px 14px; color: #fff; font-size: 13.5px; outline: none; width: 260px; }
+    .topbar-search::placeholder { color: rgba(255,255,255,.5); }
+    .topbar-search:focus { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.4); }
+    #search-count { font-size: 12px; color: rgba(255,255,255,.6); white-space: nowrap; }
+
+    /* ── Sidebar ── */
+    .sidebar { position: fixed; top: 54px; left: 0; width: 220px; height: calc(100vh - 54px); background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px 0; z-index: 100; }
+    .sidebar nav .section-header { padding: 12px 16px 3px; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #94a3b8; }
+    .sidebar nav a { display: block; padding: 6px 16px; color: var(--muted); text-decoration: none; font-size: 13.5px; border-left: 3px solid transparent; transition: all .12s; }
+    .sidebar nav a:hover { color: var(--blue); background: var(--blue-lt); }
+    .sidebar nav a.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-lt); font-weight: 600; }
+
+    /* ── Main ── */
+    .main { margin-left: 220px; padding-top: 0; }
+    .main-inner { padding: 40px 52px; max-width: 880px; }
+
+    /* ── Page title ── */
+    .page-header { background: var(--navy); color: #fff; padding: 28px 52px; margin-left: 220px; margin-top: 54px; }
+    .page-header h1 { font-size: 1.7rem; font-weight: 800; margin-bottom: 4px; }
+    .page-header p { font-size: 13.5px; color: rgba(255,255,255,.65); }
+
+    /* ── Cards ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .card h3 { margin: 0 0 5px; font-size: .9rem; color: var(--text); }
+    .card p { margin: 0; font-size: 13px; color: var(--muted); }
+    .tag { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 20px; margin-top: 10px; font-weight: 600; }
+    .tag-blue   { background: var(--blue-lt);  color: var(--blue); }
+    .tag-green  { background: var(--green-lt); color: var(--green); }
+    .tag-navy   { background: #e8edf8; color: var(--navy); }
+
+    /* ── Section headings ── */
+    h2 { font-size: 1.15rem; font-weight: 700; margin: 44px 0 14px; padding: 10px 16px; background: var(--navy); color: #fff; border-radius: 8px; }
+    h3 { font-size: 1rem; font-weight: 700; margin: 24px 0 8px; color: var(--text); }
+    h4 { font-size: 10.5px; font-weight: 700; margin: 16px 0 6px; color: #94a3b8; text-transform: uppercase; letter-spacing: .08em; }
+    p  { margin-bottom: 10px; color: #334155; }
+    ul, ol { margin: 6px 0 12px 20px; color: #334155; }
+    li { margin-bottom: 3px; }
+
+    /* ── Math ── */
+    .math-block { background: var(--blue-lt); border: 1px solid var(--blue-bd); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 14px 20px; margin: 12px 0 18px; overflow-x: auto; }
+
+    /* ── Code ── */
+    pre { background: var(--code-bg) !important; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 10px 0 18px; overflow-x: auto; font-size: 13px; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+    p code, li code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 13px; color: #be185d; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 13.5px; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    th { background: #f0f4fb; color: var(--navy); font-weight: 700; text-align: left; padding: 9px 14px; border-bottom: 2px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    td { padding: 8px 14px; border-bottom: 1px solid var(--border); color: #334155; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Badges ── */
+    .pts  { display: inline-block; background: #e8edf8; color: var(--navy); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+    .done { display: inline-block; background: var(--green-lt); color: var(--green); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+
+    /* ── Callout ── */
+    .callout { background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; padding: 11px 16px; margin: 12px 0; font-size: 13.5px; color: #7c2d12; }
+
+    /* ── Search highlight ── */
+    mark { background: #fef08a; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+    /* ── Footer ── */
+    .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12.5px; color: #94a3b8; text-align: center; }
+
+    @media (max-width: 768px) {
+      .sidebar, .page-header { display: none; }
+      .main { margin-left: 0; }
+      .main-inner { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<header class="topbar">
+  <div class="topbar-title"><span class="icon">🎓</span> 1MS041 Exam Reference</div>
+  <div class="topbar-spacer"></div>
+  <input class="topbar-search" id="search" type="search" placeholder="Search everything…" oninput="liveSearch(this.value)"/>
+  <span id="search-count"></span>
+</header>
+
+<!-- ── Page header ── -->
+<div class="page-header">
+  <h1>Sotiris's Exam Reference</h1>
+  <p>Introduction to Data Science · 1MS041 · June 16, 2026 &nbsp;·&nbsp; Built problem by problem as we work through the exams</p>
+</div>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <nav>
+    <div class="section-header">Overview</div>
+    <a href="#home">Home</a>
+
+    <div class="section-header">Cheat Sheets</div>
+    <a href="#prob-bayes">Probability & Bayes</a>
+
+    <div class="section-header">Code Snippets</div>
+    <a href="#snip-binom">Binomial Utils</a>
+
+    <div class="section-header">Solved Exams</div>
+    <a href="#exam-2022">2022 Exam</a>
+  </nav>
+</aside>
+
+<!-- ── Main content ── -->
+<div class="main">
+<div class="main-inner" id="home">
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>📐 Cheat Sheets</h3>
+      <p>Key formulas, added topic by topic as we cover each problem.</p>
+      <span class="tag tag-navy">1 topic so far</span>
+    </div>
+    <div class="card">
+      <h3>💻 Code Snippets</h3>
+      <p>Copy-paste-ready Python functions for exam patterns.</p>
+      <span class="tag tag-blue">1 snippet so far</span>
+    </div>
+    <div class="card">
+      <h3>✅ Solved Exams</h3>
+      <p>Clean, commented solutions built problem by problem.</p>
+      <span class="tag tag-green">2022 P1 done</span>
+    </div>
+  </div>
+
+  <!-- ══ CHEAT SHEET ══ -->
+  <h2 id="prob-bayes">📐 Cheat Sheet — Probability & Bayes</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: 2022 Exam Problem 1</p>
+
+  <h3>Binomial Distribution — $X \sim \text{Binom}(n, p)$</h3>
+  <div class="math-block">
+    $$P(X = k) = \binom{n}{k}\, p^k\, (1-p)^{n-k}$$
+    $$\mathbb{E}[X] = np \qquad \text{Var}(X) = np(1-p)$$
+  </div>
+  <table>
+    <tr><th>What you want</th><th>Formula</th><th>scipy shortcut</th></tr>
+    <tr><td>$P(X = k)$</td><td>PMF</td><td><code>binom.pmf(k, n, p)</code></td></tr>
+    <tr><td>$P(X \leq k)$</td><td>CDF</td><td><code>binom.cdf(k, n, p)</code></td></tr>
+    <tr><td>$P(X > k)$</td><td>Survival function</td><td><code>binom.sf(k, n, p)</code></td></tr>
+    <tr><td>$P(X \geq k)$</td><td>Tail — most useful</td><td><code>binom.sf(k-1, n, p)</code></td></tr>
+  </table>
+  <div class="callout">⚠️ In Python, <code>^</code> is bitwise XOR, not power. Always use <code>**</code> for exponentiation.</div>
+
+  <h3>Conditional Probability & Law of Total Probability</h3>
+  <div class="math-block">
+    $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}$$
+    $$P(B) = \sum_x P(B \mid X = x)\cdot P(X = x) \quad \text{(marginalise over } X\text{)}$$
+  </div>
+
+  <h3>Compound Binomial Pattern (2022 P1)</h3>
+  <p>When $N \sim \text{Binom}(20, p)$, $Z \mid N \sim \text{Binom}(20-N, \tfrac{1}{2})$, and $Y = N + Z$:</p>
+  <div class="math-block">
+    $$P(N < 10 \mid Y \geq T) = \frac{\displaystyle\sum_{n=0}^{9} P(N=n)\cdot P(Z \geq T-n \mid N=n)}{\displaystyle\sum_{n=0}^{20} P(N=n)\cdot P(Z \geq T-n \mid N=n)}$$
+  </div>
+  <p><strong>Key insight:</strong> marginalise over all values of the conditioning variable. The numerator restricts the outer sum to the "bad" cases ($n < 10$).</p>
+  <p><strong>Edge case:</strong> if $T - n \leq 0$, then $P(Z \geq T-n \mid N=n) = 1$.</p>
+
+  <!-- ══ SNIPPET ══ -->
+  <h2 id="snip-binom">💻 Snippet — Binomial Utils</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Used in: 2022 Exam Problem 1</p>
+
+<pre><code class="language-python">from math import factorial
+
+def binomial(n, k):
+    """Binomial coefficient C(n, k) = n! / (k! * (n-k)!)"""
+    return factorial(n) // (factorial(k) * factorial(n - k))
+
+def binom_pmf(k, n, p):
+    """P(X = k) for X ~ Binom(n, p)"""
+    return binomial(n, k) * p**k * (1 - p)**(n - k)
+
+def binom_tail(k, n, p):
+    """P(X >= k) for X ~ Binom(n, p)"""
+    return sum(binom_pmf(z, n, p) for z in range(k, n + 1))
+</code></pre>
+
+  <!-- ══ SOLVED EXAMS ══ -->
+  <h2 id="exam-2022">✅ 2022 Exam Solutions</h2>
+
+  <h3>Problem 1 — Probability Warmup <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <h4>Setup</h4>
+  <ul>
+    <li>$N \sim \text{Binom}(20,\ 11/20)$ — questions the student <em>knows</em></li>
+    <li>$Z \mid N \sim \text{Binom}(20-N,\ 1/2)$ — correctly <em>guessed</em> answers</li>
+    <li>$Y = N + Z$ — total correct; student passes if $Y \geq T$</li>
+  </ul>
+
+  <h4>Part 1 (5p) — P(N &lt; 10 | Y ≥ T) for each T ∈ {0,…,20}</h4>
+<pre><code class="language-python">from math import factorial
+
+def binomial(n, k):
+    return factorial(n) // (factorial(k) * factorial(n - k))
+
+p = 11/20
+p_N = lambda n: binomial(20, n) * (1-p)**(20-n) * p**n  # P(N=n)
+
+def p_Y_T_N(T, n):
+    """P(Z >= T-n | N=n)  =  P(Y >= T | N=n)"""
+    return sum(binomial(20-n, z) * (0.5)**(20-n)
+               for z in range(max(0, T-n), 20-n+1))
+
+def prob_numerator(T):    # P(N < 10 and Y >= T)
+    return sum(p_N(n) * p_Y_T_N(T, n) for n in range(0, 10))
+
+def prob_denominator(T):  # P(Y >= T)
+    return sum(p_N(n) * p_Y_T_N(T, n) for n in range(0, 21))
+
+problem11_probabilities = [
+    prob_numerator(t) / prob_denominator(t) for t in range(21)
+]
+</code></pre>
+
+  <h4>Part 2 (3p) — Smallest T for 90% certainty that N ≥ 10</h4>
+  <p>Equivalent to: smallest $T$ where $P(N < 10 \mid Y \geq T) \leq 0.10$.</p>
+<pre><code class="language-python">smallest_t = 0
+for t in range(0, 21):
+    if problem11_probabilities[t] <= 0.10:
+        smallest_t = t
+        break
+
+problem12_T = smallest_t  # → 17
+</code></pre>
+
+
+</div>
+</div>
+
+<script>
+hljs.highlightAll();
+
+function liveSearch(query) {
+  const main = document.getElementById('home');
+  const countEl = document.getElementById('search-count');
+  main.querySelectorAll('mark').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
+  main.normalize();
+  if (!query || query.length < 2) { countEl.textContent = ''; return; }
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => ['script','style','mark'].includes(n.parentElement.tagName.toLowerCase())
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+  });
+  let count = 0, nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    if (regex.test(node.textContent)) {
+      const span = document.createElement('span');
+      span.innerHTML = node.textContent.replace(regex, '<mark>$1</mark>');
+      node.replaceWith(span);
+      count += span.querySelectorAll('mark').length;
+    }
+  });
+  countEl.textContent = count ? `${count} match${count>1?'es':''}` : 'No matches';
+  const first = main.querySelector('mark');
+  if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+const sections = document.querySelectorAll('[id]');
+const links = document.querySelectorAll('.sidebar nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 110) current = s.id; });
+  links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + current));
+});
+</script>
+</body>
+</html>
