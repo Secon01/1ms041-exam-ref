@@ -406,55 +406,6 @@ for t in range(0, 21):
 problem12_T = smallest_t  # → 17
 </code></pre>
 
-  <!-- ── Problem 3 ── -->
-  <h3>Problem 3 — Concentration of Measure <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
-
-  <div class="problem-statement">
-    <div class="problem-statement-label">📋 Original Problem Statement</div>
-    <p>As you recall, we said that concentration of measure was simply the phenomenon where we expect that the probability of a large deviation of some quantity becoming smaller as we observe more samples: [0.4 points per correct answer]</p>
-    <ol>
-      <li><strong>[4p]</strong> Which of the following will <strong>exponentially concentrate</strong>, i.e. for some $C_1,C_2,C_3,C_4$: $P(Z - \mathbb{E}[Z] \geq \epsilon) \leq C_1 e^{-C_2 n\epsilon^2} \wedge C_3 e^{-C_4 n(\epsilon+1)}$?
-        <ol>
-          <li>The empirical mean of i.i.d. sub-Gaussian random variables?</li>
-          <li>The empirical mean of i.i.d. sub-Exponential random variables?</li>
-          <li>The empirical mean of i.i.d. random variables with finite variance?</li>
-          <li>The empirical variance of i.i.d. random variables with finite variance?</li>
-          <li>The empirical variance of i.i.d. sub-Gaussian random variables?</li>
-          <li>The empirical variance of i.i.d. sub-Exponential random variables?</li>
-          <li>The empirical third moment of i.i.d. sub-Gaussian random variables?</li>
-          <li>The empirical fourth moment of i.i.d. sub-Gaussian random variables?</li>
-          <li>The empirical mean of i.i.d. deterministic random variables?</li>
-          <li>The empirical tenth moment of i.i.d. Bernoulli random variables?</li>
-        </ol>
-      </li>
-      <li><strong>[4p]</strong> Which of the above will concentrate in the <strong>weaker sense</strong>, that for some $C_1$: $P(Z - \mathbb{E}[Z] \geq \epsilon) \leq \frac{C_1}{n\epsilon^2}$?</li>
-    </ol>
-  </div>
-
-  <h4>Setup</h4>
-  <ul>
-    <li>Exponential concentration requires sub-Gaussian or sub-Exponential structure (or trivial zero-variance case)</li>
-    <li>Weak concentration requires finite variance of the estimator itself — for the $k$-th empirical moment this means $\mathbb{E}[X^{2k}] &lt; \infty$</li>
-    <li>Cross-checked against autograded Assignment 1 (100% correct reference)</li>
-  </ul>
-
-  <h4>Part 1 (4p) — Exponential concentration</h4>
-<pre><code class="language-python">problem3_answer_1 = [1, 2, 5, 8, 9, 10]
-# 1: mean sub-Gaussian (Hoeffding)
-# 2: mean sub-Exponential (Bernstein)
-# 5: variance sub-Gaussian (X² is sub-Exp → Bernstein)
-# 8: fourth moment sub-Gaussian (exponential concentration holds)
-# 9: mean deterministic (zero variance, trivial)
-# 10: tenth moment Bernoulli (X¹⁰ = X → reduces to bounded mean)
-</code></pre>
-
-  <h4>Part 2 (4p) — Weak (Chebyshev) concentration</h4>
-<pre><code class="language-python">problem3_answer_2 = [1, 2, 3, 5, 6, 7, 8, 9, 10]
-# Excluded: 4 (variance of finite variance) — needs E[X⁴]<∞, not guaranteed
-# All sub-Gaussian and sub-Exponential RVs have all moments finite → Chebyshev applies
-# Item 3 (mean of finite variance) weakly concentrates via Chebyshev directly
-</code></pre>
-
   <!-- ── Problem 2 ── -->
   <h3>Problem 2 — Random Variable Generation &amp; Transformation <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
 
@@ -509,6 +460,55 @@ def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, 
             samples.append(x)
         seed += 2
     return samples
+</code></pre>
+
+  <!-- ── Problem 3 ── -->
+  <h3>Problem 3 — Concentration of Measure <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>As you recall, we said that concentration of measure was simply the phenomenon where we expect that the probability of a large deviation of some quantity becoming smaller as we observe more samples: [0.4 points per correct answer]</p>
+    <ol>
+      <li><strong>[4p]</strong> Which of the following will <strong>exponentially concentrate</strong>, i.e. for some $C_1,C_2,C_3,C_4$: $P(Z - \mathbb{E}[Z] \geq \epsilon) \leq C_1 e^{-C_2 n\epsilon^2} \wedge C_3 e^{-C_4 n(\epsilon+1)}$?
+        <ol>
+          <li>The empirical mean of i.i.d. sub-Gaussian random variables?</li>
+          <li>The empirical mean of i.i.d. sub-Exponential random variables?</li>
+          <li>The empirical mean of i.i.d. random variables with finite variance?</li>
+          <li>The empirical variance of i.i.d. random variables with finite variance?</li>
+          <li>The empirical variance of i.i.d. sub-Gaussian random variables?</li>
+          <li>The empirical variance of i.i.d. sub-Exponential random variables?</li>
+          <li>The empirical third moment of i.i.d. sub-Gaussian random variables?</li>
+          <li>The empirical fourth moment of i.i.d. sub-Gaussian random variables?</li>
+          <li>The empirical mean of i.i.d. deterministic random variables?</li>
+          <li>The empirical tenth moment of i.i.d. Bernoulli random variables?</li>
+        </ol>
+      </li>
+      <li><strong>[4p]</strong> Which of the above will concentrate in the <strong>weaker sense</strong>, that for some $C_1$: $P(Z - \mathbb{E}[Z] \geq \epsilon) \leq \frac{C_1}{n\epsilon^2}$?</li>
+    </ol>
+  </div>
+
+  <h4>Setup</h4>
+  <ul>
+    <li>Exponential concentration requires sub-Gaussian or sub-Exponential structure (or trivial zero-variance case)</li>
+    <li>Weak concentration requires finite variance of the estimator itself — for the $k$-th empirical moment this means $\mathbb{E}[X^{2k}] &lt; \infty$</li>
+    <li>Cross-checked against autograded Assignment 1 (100% correct reference)</li>
+  </ul>
+
+  <h4>Part 1 (4p) — Exponential concentration</h4>
+<pre><code class="language-python">problem3_answer_1 = [1, 2, 5, 8, 9, 10]
+# 1: mean sub-Gaussian (Hoeffding)
+# 2: mean sub-Exponential (Bernstein)
+# 5: variance sub-Gaussian (X² is sub-Exp → Bernstein)
+# 8: fourth moment sub-Gaussian (exponential concentration holds)
+# 9: mean deterministic (zero variance, trivial)
+# 10: tenth moment Bernoulli (X¹⁰ = X → reduces to bounded mean)
+</code></pre>
+
+  <h4>Part 2 (4p) — Weak (Chebyshev) concentration</h4>
+<pre><code class="language-python">problem3_answer_2 = [1, 2, 3, 5, 6, 7, 8, 9, 10]
+# Excluded: 4 (variance of finite variance) — needs E[X⁴]<∞, not guaranteed
+# All sub-Gaussian and sub-Exponential RVs have all moments finite → Chebyshev applies
+# Item 3 (mean of finite variance) weakly concentrates via Chebyshev directly
 </code></pre>
 
 
