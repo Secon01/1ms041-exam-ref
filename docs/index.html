@@ -141,6 +141,8 @@
     <a href="#prob-bayes">Probability & Bayes</a>
     <a href="#lcg-theory">LCG & Accept-Reject</a>
     <a href="#concentration-theory">Concentration of Measure</a>
+    <a href="#markov-chains">Markov Chains</a>
+    <a href="#mle-theory">MLE</a>
 
     <div class="section-header">Code Snippets</div>
     <a href="#snip-binom">Binomial Utils</a>
@@ -148,6 +150,12 @@
 
     <div class="section-header">Solved Exams</div>
     <a href="#exam-2022">2022 Exam</a>
+
+    <div class="section-header">Assignments</div>
+    <a href="#assign-1">Assignment 1</a>
+    <a href="#assign-2">Assignment 2</a>
+    <a href="#assign-3">Assignment 3</a>
+    <a href="#assign-4">Assignment 4</a>
   </nav>
 </aside>
 
@@ -510,6 +518,570 @@ def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, 
 # All sub-Gaussian and sub-Exponential RVs have all moments finite → Chebyshev applies
 # Item 3 (mean of finite variance) weakly concentrates via Chebyshev directly
 </code></pre>
+
+  <!-- ══ CHEAT SHEET: MARKOV CHAINS ══ -->
+  <h2 id="markov-chains">📐 Cheat Sheet — Markov Chains</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problem 1</p>
+
+  <h3>Transition Matrix &amp; $n$-Step Probabilities</h3>
+  <p>A Markov chain with $d$ states has transition matrix $P \in \mathbb{R}^{d \times d}$ where $P_{ij} = P(X_{n+1}=j \mid X_n=i)$. Each row sums to 1.</p>
+  <div class="math-block">$$P(X_{n+k} = j \mid X_n = i) = (P^k)_{ij}$$</div>
+
+  <h3>First Passage (Hitting) Probability</h3>
+  <p>$f_{ij}^{(n)}$ = probability of reaching state $j$ for the <em>first time</em> at step $n$, starting from $i$. For 2 steps from $i$ to $j$:</p>
+  <div class="math-block">$$f_{ij}^{(2)} = \sum_{k \neq j} P_{ik} \cdot P_{kj}$$</div>
+  <div class="callout">⚠️ First-passage ≠ $n$-step probability. $(P^2)_{ij}$ counts all paths including those that pass through $j$ at step 1; $f_{ij}^{(2)}$ excludes those.</div>
+
+  <h3>Irreducibility</h3>
+  <p>A chain is <strong>irreducible</strong> if every state is reachable from every other state. Check: is the transition graph strongly connected?</p>
+
+  <h3>Stationary Distribution</h3>
+  <p>Row vector $\pi$ with $\pi P = \pi$ and $\sum_i \pi_i = 1$. Solved as a linear system:</p>
+  <div class="math-block">$$(P^\top - I)\,\pi = 0, \qquad \mathbf{1}^\top \pi = 1$$</div>
+<pre><code class="language-python">import numpy as np
+P = np.array([[0.3, 0.4, 0.3],
+              [0.2, 0.5, 0.3],
+              [0.4, 0.3, 0.3]])
+A = P.T - np.eye(3)
+A[-1, :] = [1, 1, 1]   # replace last row with normalisation constraint
+b = np.array([0, 0, 1])
+pi = np.linalg.solve(A, b)   # π ≈ [0.295, 0.421, 0.284]
+</code></pre>
+
+  <h3>Expected Hitting Time</h3>
+  <p>$h_i$ = expected steps to first reach target state $T$ from state $i$. Set $h_T = 0$ and solve:</p>
+  <div class="math-block">$$h_i = 1 + \sum_{j \neq T} P_{ij}\, h_j$$</div>
+<pre><code class="language-python"># Expected steps to Downtown (index 0) from Suburbs (1) or Countryside (2)
+# h_S = 1 + 0.5*h_S + 0.3*h_C  →  0.5*h_S - 0.3*h_C = 1
+# h_C = 1 + 0.3*h_S + 0.3*h_C  → -0.3*h_S + 0.7*h_C = 1
+A2 = np.array([[0.5, -0.3],
+               [-0.3, 0.7]])
+h_S, h_C = np.linalg.solve(A2, [1, 1])
+</code></pre>
+
+  <!-- ══ CHEAT SHEET: MLE ══ -->
+  <h2 id="mle-theory">📐 Cheat Sheet — Maximum Likelihood Estimation</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problems 2–3</p>
+
+  <h3>Log-Likelihood for IID Samples</h3>
+  <div class="math-block">
+    $$\ell(\theta) = \sum_{i=1}^n \log f(x_i;\,\theta)$$
+    $$\hat\theta_{\text{MLE}} = \arg\max_\theta\,\ell(\theta) \equiv \arg\min_\theta\bigl(-\ell(\theta)\bigr)$$
+  </div>
+
+  <h3>Numerical MLE via <code>scipy.optimize.minimize</code></h3>
+<pre><code class="language-python">import numpy as np
+from scipy import optimize
+
+def neg_log_lik(params):
+    mu, sigma = params
+    vals = (1/(sigma*np.sqrt(2*np.pi))) * np.exp(-0.5*((data-mu)/sigma)**2)
+    vals = np.maximum(vals, 1e-300)   # numerical safety
+    return -np.sum(np.log(vals))
+
+result = optimize.minimize(neg_log_lik, x0=[0, 1],
+                           bounds=[(-20, 20), (0.2, 8.0)])
+mu_hat, sigma_hat = result.x
+</code></pre>
+
+  <h3>Analytical MLE — Gamma-type Distribution</h3>
+  <p>For $f(x;\lambda) = \frac{1}{24}\lambda^5 x^4 e^{-\lambda x}$ (shape $k=5$, rate $\lambda$):</p>
+  <div class="math-block">
+    $$\ell(\lambda) = 5n\log\lambda - \lambda\sum x_i + \text{const}$$
+    $$\frac{d\ell}{d\lambda} = \frac{5n}{\lambda} - \sum x_i = 0 \implies \hat\lambda_{\text{MLE}} = \frac{5}{\bar{x}}$$
+  </div>
+  <p><strong>General rule for Gamma$(\alpha, \lambda)$:</strong> $\hat\lambda_{\text{MLE}} = \alpha / \bar{x}$.</p>
+
+  <!-- ══ ASSIGNMENT 1 ══ -->
+  <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
+
+  <h3>Problem 1 — AI Anatomy Reading Comprehension <span class="pts">3p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Read "Anatomy of an AI System" by Kate Crawford and Vladan Joler (2018). Answer <code>True</code> or <code>False</code> <em>according to the authors</em> for each statement:</p>
+    <ol>
+      <li><em>Each small moment of convenience (provided by Amazon's Echo) – be it answering a question, turning on a light, or playing a song – requires a vast planetary network, fueled by the extraction of non-renewable materials, labor, and data.</em></li>
+      <li><em>The Echo user is simultaneously a consumer, a resource, a worker, and a product.</em></li>
+      <li><em>Many of the assumptions about human life made by machine learning systems are narrow, normative and laden with error. Yet they are inscribing and building those assumptions into a new world, and will increasingly play a role in how opportunities, wealth, and knowledge are distributed.</em></li>
+    </ol>
+  </div>
+<pre><code class="language-python">TruthValueOfStatement0a = True
+TruthValueOfStatement0b = True
+TruthValueOfStatement0c = True
+</code></pre>
+
+  <h3>Problem 2 — Shell Command: <code>head</code> <span class="pts">2p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Use the right <code>head</code> option to display the first 4 lines of <code>data/final.csv</code>. Store line 1 (the header) and line 2 (first data row) as Python strings.</p>
+  </div>
+<pre><code class="language-python">%%sh
+head -4 data/final.csv
+# region,municipality,district,party,votes
+# Blekinge län,Karlshamn,0 - Centrala Asarum,S,519
+# Blekinge län,Karlshamn,0 - Centrala Asarum,SD,311
+# Blekinge län,Karlshamn,0 - Centrala Asarum,M,162
+
+line_1_final = "region,municipality,district,party,votes"
+line_2_final = "Blekinge län,Karlshamn,0 - Centrala Asarum,S,519"
+</code></pre>
+
+  <h3>Problem 3 — CSV Parsing <span class="pts">3p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Read <code>data/final.csv</code> using the <code>csv</code> package. Store the result so that <code>header</code> is a list of strings (column names) and <code>data</code> is a list of lists (each row is a list of strings).</p>
+  </div>
+<pre><code class="language-python">import csv
+
+filename = "data/final.csv"
+header = []
+data   = []
+
+with open(filename, 'r') as csvfile:
+    csvreader = csv.reader(csvfile)
+    header = next(csvreader)        # first row → list of strings
+    for row in csvreader:
+        data.append(row)            # each subsequent row → list of strings
+</code></pre>
+
+  <h3>Problem 4 — Students Passing Exam + Concentration of Measure Pt. 1 <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Exam with $10$ yes/no questions. $N \sim \text{Binom}(10,\, 6/10)$ known; $Z \mid N \sim \text{Binom}(10-N,\, 1/2)$ guessed. $Y = N+Z$ total correct.</p>
+    <ol>
+      <li>[5p] For each $T \in \{0,\ldots,10\}$ compute $P(N &lt; 5 \mid Y \geq T)$. Store in <code>problem11_probabilities</code> (length-11 list).</li>
+      <li>[3p] Smallest $T$ such that $P(N &lt; 5 \mid Y \geq T) \leq 0.10$.</li>
+    </ol>
+    <p><strong>Concentration of Measure (Part 1, 0.4p each):</strong> Which of the following <em>exponentially</em> concentrate? (10 items — see code for listing.)</p>
+  </div>
+<pre><code class="language-python">from scipy.special import binom as binomial
+
+p   = 6/10
+p_N = lambda k: binomial(10,k) * (1-p)**(10-k) * p**k
+p_Z = lambda k,z: binomial(10-k,z) * 0.5**z * 0.5**(10-k-z)
+
+def p_Y_ge_T_given_N(k, t):
+    """P(Z >= t-k | N=k)  =  P(Y >= t | N=k)"""
+    return sum(p_Z(k,z) for z in range(max(0, t-k), 10-k+1))
+
+def num(t):   # P(N < 5 and Y >= t)
+    return sum(p_N(k) * p_Y_ge_T_given_N(k, t) for k in range(5))
+
+def den(t):   # P(Y >= t)
+    return sum(p_N(k) * p_Y_ge_T_given_N(k, t) for k in range(11))
+
+problem11_probabilities = [num(t)/den(t) for t in range(11)]
+# → list of 11 conditional probabilities
+
+problem12_T = next(t for t in range(11) if problem11_probabilities[t] <= 0.10)
+# → 8  (at T=8 we are ≥90% certain the student knows ≥5 answers)
+
+# ── Concentration of Measure Part 1 ──────────────────────────────────────────
+# Items (same ordering as the assignment):
+# 1. Variance of finite-mean RVs           → NO  (need E[X⁴]<∞)
+# 2. Variance of sub-Gaussian RVs          → YES (X² sub-Exp → Bernstein)
+# 3. Variance of sub-Exponential RVs       → NO  (X² too heavy)
+# 4. Mean of sub-Gaussian RVs              → YES (Hoeffding)
+# 5. Mean of sub-Exponential RVs           → YES (Bernstein)
+# 6. Mean of finite-variance RVs           → NO  (Chebyshev only)
+# 7. 3rd moment, finite 6th moment         → NO
+# 8. 4th moment of sub-Gaussian            → YES
+# 9. Mean of deterministic RVs             → YES (zero variance)
+# 10. 10th moment of Bernoulli             → YES (X^10 = X → bounded mean)
+problem3_answer_1 = [2, 4, 5, 8, 9, 10]
+</code></pre>
+
+  <h3>Problem 5 — Concentration of Measure Part 2 <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Which of the same 10 quantities (same numbering as Problem 4) concentrate in the <strong>weaker Chebyshev sense</strong>:
+    $$P(Z - \mathbb{E}[Z] \geq \epsilon) \leq \frac{C_1}{n\epsilon^2}?$$</p>
+  </div>
+<pre><code class="language-python"># Weak (Chebyshev) concentration requires finite variance of the estimator.
+# For the k-th empirical moment, need E[X^{2k}] < ∞.
+# 1. Variance of finite-mean      → NO  (E[X⁴] not guaranteed)
+# 2. Variance of sub-Gaussian     → YES (all moments finite)
+# 3. Variance of sub-Exponential  → YES (all moments finite)
+# 4. Mean of sub-Gaussian         → YES
+# 5. Mean of sub-Exponential      → YES
+# 6. Mean of finite-variance      → YES (Chebyshev directly)
+# 7. 3rd moment, finite 6th       → YES (E[X⁶]<∞ → variance of estimator finite)
+# 8. 4th moment of sub-Gaussian   → YES
+# 9. Mean of deterministic        → YES
+# 10. 10th moment of Bernoulli    → YES
+problem3_answer_2 = [2, 3, 4, 5, 6, 7, 8, 9, 10]
+</code></pre>
+
+  <!-- ══ ASSIGNMENT 2 ══ -->
+  <h2 id="assign-2">✅ Assignment 2 Solutions</h2>
+
+  <h3>Problem 1 — Markov Chain: Delivery Trucks <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Trucks move between Downtown, Suburbs, and Countryside with the following transition probabilities:</p>
+    <table>
+      <tr><th>From \ To</th><th>Downtown</th><th>Suburbs</th><th>Countryside</th></tr>
+      <tr><td>Downtown</td><td>0.3</td><td>0.4</td><td>0.3</td></tr>
+      <tr><td>Suburbs</td><td>0.2</td><td>0.5</td><td>0.3</td></tr>
+      <tr><td>Countryside</td><td>0.4</td><td>0.3</td><td>0.3</td></tr>
+    </table>
+    <ol>
+      <li>[1.5p] Probability of being downtown after 2 steps starting from suburbs?</li>
+      <li>[1.5p] Probability of <em>first</em> reaching downtown at exactly step 2, starting from suburbs?</li>
+      <li>[1.5p] Is this chain irreducible?</li>
+      <li>[1.5p] What is the stationary distribution?</li>
+      <li>[2p] Expected number of steps to first reach downtown starting from suburbs?</li>
+    </ol>
+  </div>
+<pre><code class="language-python">import numpy as np
+
+P = np.array([[0.3, 0.4, 0.3],
+              [0.2, 0.5, 0.3],
+              [0.4, 0.3, 0.3]])
+
+# Part 1: (P²)[1,0]  =  Suburbs → Downtown in exactly 2 steps (any path)
+problem1_p1 = (P @ P)[1, 0]          # = 0.28
+
+# Part 2: first-passage at step 2 = paths that avoid Downtown at step 1
+# f_{S,D}^(2) = P[Suburbs,Suburbs]*P[Suburbs,Downtown]
+#             + P[Suburbs,Countryside]*P[Countryside,Downtown]
+problem1_p2 = P[1,1]*P[1,0] + P[1,2]*P[2,0]   # = 0.22
+
+# Part 3: all states communicate → irreducible
+problem1_irreducible = True
+
+# Part 4: stationary distribution  πP = π,  sum(π) = 1
+A = P.T - np.eye(3)
+A[-1, :] = [1, 1, 1]
+problem1_stationary = np.linalg.solve(A, np.array([0, 0, 1]))
+# ≈ [0.295, 0.421, 0.284]
+
+# Part 5: expected hitting time to Downtown (index 0) from Suburbs (index 1)
+# h_S = 1 + 0.5·h_S + 0.3·h_C  →  0.5·h_S − 0.3·h_C = 1
+# h_C = 1 + 0.3·h_S + 0.3·h_C  → −0.3·h_S + 0.7·h_C = 1
+A2 = np.array([[0.5, -0.3],
+               [-0.3, 0.7]])
+E_S, E_C = np.linalg.solve(A2, [1, 1])
+problem1_ET = E_S
+</code></pre>
+
+  <h3>Problem 2 — Numerical MLE: Normal Distribution <span class="pts">4p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Numerically find the MLE for $\mu$ and $\sigma$ based on 30 IID samples from $\text{Normal}(10,2)$ using <code>scipy.optimize.minimize</code> with bounding box constraints. The density is $f(x;\mu,\sigma) = \frac{1}{\sigma\sqrt{2\pi}}\exp\!\left(\frac{-(x-\mu)^2}{2\sigma^2}\right)$.</p>
+  </div>
+<pre><code class="language-python">import numpy as np
+from scipy import optimize
+
+np.random.seed(123456)
+normallySimulatedDataSamples = np.random.normal(10, 2, 30)
+
+def negLogLklOfIIDNormalSamples(parameters):
+    mu, sigma = parameters[0], parameters[1]
+    pdf_vals = (1/(sigma*np.sqrt(2*np.pi))) * np.exp(
+        -0.5 * ((normallySimulatedDataSamples - mu)/sigma)**2
+    )
+    pdf_vals = np.maximum(pdf_vals, 1e-300)   # guard against log(0)
+    return -np.sum(np.log(pdf_vals))
+
+parameter_bounding_box = ((-20, 20), (0.2, 8.0))
+initial_arguments      = np.array([0, 0])
+result_problem2_opt = optimize.minimize(
+    negLogLklOfIIDNormalSamples, initial_arguments, bounds=parameter_bounding_box
+)
+# result_problem2_opt.x ≈ [μ̂, σ̂] close to (10, 2)
+</code></pre>
+
+  <h3>Problem 3 — Analytical MLE: Gamma-type Distribution <span class="pts">4p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Derive the MLE for $n$ IID samples from $f(x;\lambda) = \frac{1}{24}\lambda^5 x^4 e^{-\lambda x}$ ($\lambda &gt; 0,\, x &gt; 0$). Implement as <code>MLeForAssignment2Problem3(x)</code>.</p>
+  </div>
+  <p><strong>Derivation:</strong> Log-likelihood $\ell(\lambda) = 5n\log\lambda - \lambda\sum x_i + \text{const}$. FOC: $\frac{5n}{\lambda} - \sum x_i = 0 \Rightarrow \hat\lambda = \frac{5}{\bar{x}}$.</p>
+<pre><code class="language-python">def MLeForAssignment2Problem3(x):
+    '''MLE for n IID samples from (1/24)*λ^5*x^4*exp(-λx)'''
+    sample_mean = sum(x) / len(x)
+    return 5 / sample_mean    # = shape k / sample mean  (Gamma MLE)
+</code></pre>
+
+  <h3>Problem 4 — LCG &amp; Accept-Reject (Period $M = 2^{31}$) <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Implement a Linear Congruential Generator with $M=2^{31}$, $a=1103515245$, $c=12345$ (ANSI C parameters, Hull-Dobell verified). Build a uniform $[0,1]$ sampler, then use accept-reject to sample from $p_0(x) = \frac{\pi}{2}|\sin(2\pi x)|$.</p>
+  </div>
+<pre><code class="language-python">import math
+
+def problem4_LCG(size=None, seed=0):
+    m, a, c = 2**31, 1103515245, 12345
+    nums = []
+    for _ in range(size):
+        seed = (a * seed + c) % m
+        nums.append(int(seed))
+    return nums
+
+def problem4_uniform(generator=None, period=1, size=None, seed=0):
+    try:
+        X = generator(size=size, seed=seed, period=period)
+    except TypeError:
+        X = generator(size=size, seed=seed)
+    return [x / period for x in X]
+
+def problem4_accept_reject(uniformGenerator=None, n_iterations=None, seed=0):
+    accepted = []
+    current_seed = seed
+    for _ in range(n_iterations):
+        x = uniformGenerator(size=1, seed=current_seed)[0]
+        u = uniformGenerator(size=1, seed=current_seed + 1)[0]
+        if u <= abs(math.sin(2 * math.pi * x)):
+            accepted.append(x)
+        current_seed += 2    # advance by 2 so each iteration uses a fresh pair
+    return accepted
+
+# Usage
+period = 2**31
+uniform_sampler = lambda size, seed: problem4_uniform(
+    generator=problem4_LCG, period=period, size=size, seed=seed
+)
+samples = problem4_accept_reject(uniformGenerator=uniform_sampler, n_iterations=100, seed=1)
+</code></pre>
+
+  <!-- ══ ASSIGNMENT 3 ══ -->
+  <h2 id="assign-3">✅ Assignment 3 Solutions</h2>
+
+  <h3>Problem 1 — SMHI Wind Data Analysis <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Load <code>data/smhi.csv</code> (SMHI Uppsala Aut station; semicolon-delimited, Swedish headers, UTF-8 BOM). Parse wind direction (column 2, degrees) and wind speed (column 4, m/s). Then:</p>
+    <ol>
+      <li>Convert compass direction to $(x,y)$ unit-vector components.</li>
+      <li>Compute wind velocity vectors (speed × direction unit vector).</li>
+      <li>Compute the average velocity vector and its angle in degrees.</li>
+      <li>Compute the average direction angle (from unit vectors only).</li>
+      <li>Are the two angle estimates the same? Store as boolean.</li>
+      <li>Compute the $2\times2$ covariance matrix of wind velocity.</li>
+    </ol>
+  </div>
+<pre><code class="language-python">import csv, numpy as np
+
+wind_direction, wind_speed = [], []
+with open("data/smhi.csv", "r", encoding="utf-8-sig") as f:
+    reader = csv.reader(f, delimiter=";")
+    header_found = False
+    for row in reader:
+        if not row: continue
+        if row[0].strip() == "Datum":
+            header_found = True; continue
+        if not header_found or len(row) < 5: continue
+        try:
+            wind_direction.append(float(row[2].replace(",", ".")))
+            wind_speed.append(float(row[4].replace(",", ".")))
+        except ValueError:
+            continue
+
+problem1_wind_direction = np.array(wind_direction)
+problem1_wind_speed     = np.array(wind_speed)
+
+# Convert compass bearing → math unit vector (wind blows FROM that direction)
+theta = np.deg2rad(problem1_wind_direction)
+problem1_wind_direction_x_coordinate = -np.sin(theta)
+problem1_wind_direction_y_coordinate = -np.cos(theta)
+
+# Wind velocity = speed × unit direction
+vx = problem1_wind_speed * problem1_wind_direction_x_coordinate
+vy = problem1_wind_speed * problem1_wind_direction_y_coordinate
+problem1_wind_velocity_x_coordinate = vx
+problem1_wind_velocity_y_coordinate = vy
+
+# Average velocity vector and its angle
+problem1_average_wind_velocity_x_coordinate = np.mean(vx)
+problem1_average_wind_velocity_y_coordinate = np.mean(vy)
+alpha_vel = np.arctan2(problem1_average_wind_velocity_y_coordinate,
+                       problem1_average_wind_velocity_x_coordinate)
+problem1_average_wind_velocity_angle_degrees = np.rad2deg(alpha_vel) % 360
+
+# Average direction angle (unit vectors, no speed weighting)
+mean_dir_x = np.mean(problem1_wind_direction_x_coordinate)
+mean_dir_y = np.mean(problem1_wind_direction_y_coordinate)
+alpha_dir  = np.arctan2(mean_dir_y, mean_dir_x)
+problem1_average_wind_direction_angle_degrees = np.rad2deg(alpha_dir) % 360
+
+# Are they the same as arithmetic mean of raw degrees?
+problem1_same_angle = False   # answer: False
+
+# Covariance matrix of velocity (ddof=1)
+problem1_wind_velocity_covariance_matrix = np.cov(vx, vy, ddof=1)
+</code></pre>
+  <div class="callout">💡 Compass bearing is measured clockwise from North, and represents the direction the wind is <em>coming from</em>. The standard math-convention unit vector pointing in the wind's travel direction is $(-\sin\theta,\, -\cos\theta)$. The vector mean of directions is not the arithmetic mean of angles.</div>
+
+  <h3>Problem 2 — Indoor Localisation with SVM <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Load <code>data/indoor_train.csv</code> into a pandas DataFrame <code>df_train</code>. Create <code>Xtrain</code> (shape <code>(1154,3)</code>, dtype <code>float64</code>) from Position X/Y/Z, and <code>Ytrain</code> (shape <code>(1154,)</code>, dtype <code>int64</code>) from Location. Train a linear SVC named <code>svc_train</code>; the autograder will test it on a hidden test set.</p>
+  </div>
+<pre><code class="language-python">import pandas as pd
+import numpy as np
+from sklearn.svm import SVC
+
+df_train = pd.read_csv("data/indoor_train.csv")
+
+# Note: column name has a leading space → ' Position Y'
+Xtrain = df_train[['Position X', ' Position Y', 'Position Z']].to_numpy(dtype="float64")
+Ytrain = df_train["Location"].to_numpy(dtype="int64")
+
+svc_train = SVC(kernel="linear").fit(Xtrain, Ytrain)
+</code></pre>
+
+  <h3>Problem 3 — Logistic Regression &amp; Calibration (Spam) <span class="pts">8p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Build a proportional model $P(Y=1 \mid X) = G(\beta_0 + \beta\cdot X)$ where $G$ is the logistic function and $X_1,X_2,X_3$ are indicators for words "free", "prize", "win" in emails. Use <code>data/spam.csv</code>.</p>
+    <ol>
+      <li>[2p] Load data, build feature matrix, split 40/20/40 (train/calib/test) using <code>np.random.default_rng(seed=0)</code>.</li>
+      <li>[2p] Implement negative log-likelihood loss; fit with <code>scipy.optimize.minimize(method='cg')</code>.</li>
+      <li>[2p] Calibrate: predict on calib set; fit a <code>DecisionTreeRegressor(max_depth=3)</code> on (raw predictions, true labels).</li>
+      <li>[2p] Final predictions on test set: apply model then calibrator.</li>
+    </ol>
+  </div>
+<pre><code class="language-python">import pandas as pd, numpy as np
+from scipy import optimize
+from sklearn.tree import DecisionTreeRegressor
+
+# ── Data loading ──────────────────────────────────────────────────────────────
+df = pd.read_csv("data/spam.csv", encoding="ISO-8859-1", usecols=[0,1]).dropna(axis=1, how="all")
+X1 = df["v2"].str.contains(r"\bfree\b",  case=False, na=False).astype(int).to_numpy()
+X2 = df["v2"].str.contains(r"\bprize\b", case=False, na=False).astype(int).to_numpy()
+X3 = df["v2"].str.contains(r"\bwin\b",   case=False, na=False).astype(int).to_numpy()
+problem3_X = np.column_stack((X1, X2, X3))
+problem3_Y = (df["v1"] == "spam").astype(int).to_numpy()
+
+n   = problem3_X.shape[0]
+rng = np.random.default_rng(seed=0)
+perm = rng.permutation(n)
+train_end, calib_end = int(0.4*n), int(0.6*n)
+problem3_X_train = problem3_X[perm[:train_end]]
+problem3_X_calib = problem3_X[perm[train_end:calib_end]]
+problem3_X_test  = problem3_X[perm[calib_end:]]
+problem3_Y_train = problem3_Y[perm[:train_end]]
+problem3_Y_calib = problem3_Y[perm[train_end:calib_end]]
+problem3_Y_test  = problem3_Y[perm[calib_end:]]
+
+# ── ProportionalSpam model ────────────────────────────────────────────────────
+class ProportionalSpam:
+    def __init__(self): self.coeffs = None
+    def loss(self, X, Y, coeffs):
+        z = coeffs[0] + X @ coeffs[1:]
+        G = np.clip(1/(1+np.exp(-z)), 1e-12, 1-1e-12)
+        return -np.mean(Y*np.log(G) + (1-Y)*np.log(1-G))
+    def fit(self, X, Y):
+        res = optimize.minimize(lambda c: self.loss(X, Y, c),
+                                np.zeros(X.shape[1]+1), method='cg')
+        self.coeffs = res.x
+    def predict(self, X):
+        G = lambda x: np.exp(x)/(1+np.exp(x))
+        return np.round(10*G(X @ self.coeffs[1:] + self.coeffs[0]))/10
+
+problem3_ps = ProportionalSpam()
+problem3_ps.fit(problem3_X_train, problem3_Y_train)
+
+# ── Calibration ───────────────────────────────────────────────────────────────
+problem3_X_pred   = problem3_ps.predict(problem3_X_calib).reshape(-1, 1)
+problem3_calibrator = DecisionTreeRegressor(max_depth=3, random_state=0)
+problem3_calibrator.fit(problem3_X_pred, problem3_Y_calib)
+
+# ── Final predictions on test set ─────────────────────────────────────────────
+problem3_test_raw          = problem3_ps.predict(problem3_X_test).reshape(-1, 1)
+problem3_final_predictions = problem3_calibrator.predict(problem3_test_raw)
+</code></pre>
+
+  <!-- ══ ASSIGNMENT 4 ══ -->
+  <h2 id="assign-4">✅ Assignment 4 Solutions</h2>
+
+  <h3>Problem 1 — COVID Tweet Sentiment Classification <span class="pts">24p</span> <span class="done">✓ 100%</span></h3>
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Dataset: <code>data/Corona_NLP_train.csv</code>. Filter out Neutral tweets. Label $Y=1$ for positive sentiment, $Y=0$ for negative. Deterministic split (no shuffling): 60% train / 15% test / 25% validation.</p>
+    <ol>
+      <li>[3p] Load and split data.</li>
+      <li>[4p] Build a <code>Pipeline(CountVectorizer, LogisticRegression)</code> that accepts raw text and outputs 0/1; <code>predict_proba</code> must work.</li>
+      <li>[3p] Compute precision and recall for both classes on the test set.</li>
+      <li>[3p] Cost function: false negative (positive→negative) costs 1; false positive (negative→positive) costs 5. Return average cost.</li>
+      <li>[4p] Find the threshold that minimises cost on the test set.</li>
+      <li>[4p] Evaluate cost on validation set; compute 99% Hoeffding confidence interval (values in $[0,5]$).</li>
+      <li>[3p] Compute empirical variance of per-sample cost $C$; recompute CI using Bennett's inequality.</li>
+    </ol>
+  </div>
+
+  <h4>Parts 1–2: Data loading &amp; pipeline</h4>
+<pre><code class="language-python">import numpy as np, pandas as pd
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
+from Utils import train_test_validation
+
+df = pd.read_csv("data/Corona_NLP_train.csv", encoding="ISO-8859-1")
+df = df[df["Sentiment"] != "Neutral"].copy()
+X  = df["OriginalTweet"].astype(str).to_numpy()
+Y  = df["Sentiment"].str.contains("Positive").astype(int).to_numpy()
+
+# Deterministic split: layout is [train, test, validation]
+X_train, X_test, X_valid, Y_train, Y_test, Y_valid = train_test_validation(
+    X, Y, test_size=0.15, validation_size=0.25, random_state=0, shuffle=False
+)
+
+model = Pipeline([
+    ("vec", CountVectorizer(stop_words="english", max_features=50000)),
+    ("clf", LogisticRegression(max_iter=1000, solver="liblinear"))
+])
+model.fit(X_train, Y_train)
+</code></pre>
+
+  <h4>Parts 3–4: Precision/recall &amp; cost function</h4>
+<pre><code class="language-python">from sklearn.metrics import precision_score, recall_score
+
+y_pred      = model.predict(X_test)
+precision_0 = precision_score(Y_test, y_pred, pos_label=0)
+recall_0    = recall_score(Y_test,    y_pred, pos_label=0)
+precision_1 = precision_score(Y_test, y_pred, pos_label=1)
+recall_1    = recall_score(Y_test,    y_pred, pos_label=1)
+
+def cost(model, threshold, X, Y):
+    """Average cost: FN costs 1 (positive labelled negative), FP costs 5."""
+    p1     = model.predict_proba(X)[:, 1]          # P(Y=1 | X)
+    Y_pred = (p1 >= threshold).astype(int)
+    fn = (Y == 1) & (Y_pred == 0)                  # missed positives
+    fp = (Y == 0) & (Y_pred == 1)                  # false alarms
+    return float(np.mean(fn.astype(int)*1 + fp.astype(int)*5))
+</code></pre>
+
+  <h4>Parts 5–7: Optimal threshold &amp; confidence intervals</h4>
+<pre><code class="language-python">from Utils import compute_confidence_interval_bounded, bennett_epsilon
+
+# ── Part 5: sweep threshold ──────────────────────────────────────────────────
+thresholds = np.linspace(0, 1, 101)
+costs_test = [cost(model, t, X_test, Y_test) for t in thresholds]
+optimal_threshold          = thresholds[np.argmin(costs_test)]   # ≈ 0.76
+cost_at_optimal_threshold  = min(costs_test)
+
+# ── Part 6: Hoeffding 99% CI on validation set ───────────────────────────────
+p1_v      = model.predict_proba(X_valid)[:, 1]
+Y_pred_v  = (p1_v >= optimal_threshold).astype(int)
+fn_v = (Y_valid == 1) & (Y_pred_v == 0)
+fp_v = (Y_valid == 0) & (Y_pred_v == 1)
+costs_valid = fn_v.astype(int)*1 + fp_v.astype(int)*5
+
+cost_at_optimal_threshold_valid = float(np.mean(costs_valid))
+cost_interval_valid = compute_confidence_interval_bounded(
+    costs_valid, delta=0.01, min_value=0, max_value=5
+)  # Hoeffding: width ∝ (max−min)/sqrt(n)
+
+# ── Part 7: empirical variance of C; Bennett CI ──────────────────────────────
+variance_of_C = float(np.var(costs_valid, ddof=0))
+n      = len(costs_valid)
+mean_C = float(np.mean(costs_valid))
+eps    = bennett_epsilon(n, 5, np.sqrt(variance_of_C), 0.01)  # b=5 (max cost)
+interval_of_C = (max(0.0, mean_C - eps), min(5.0, mean_C + eps))
+</code></pre>
+  <div class="callout">💡 Bennett's inequality gives a tighter CI than Hoeffding when variance is low: it uses both the range $b$ and the variance $\sigma^2$, so when $C$ is mostly 0 the interval shrinks significantly.</div>
 
 
 </div>
