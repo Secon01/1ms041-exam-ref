@@ -95,6 +95,13 @@
     /* ── Callout ── */
     .callout { background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; padding: 11px 16px; margin: 12px 0; font-size: 13.5px; color: #7c2d12; }
 
+    /* ── Problem statement box ── */
+    .problem-statement { background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 0 8px 8px 0; padding: 18px 22px; margin: 14px 0 22px; }
+    .problem-statement-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--navy); margin-bottom: 10px; }
+    .problem-statement p { color: #334155; margin-bottom: 10px; }
+    .problem-statement ol { margin-left: 20px; color: #334155; }
+    .problem-statement li { margin-bottom: 6px; }
+
     /* ── Search highlight ── */
     mark { background: #fef08a; color: inherit; border-radius: 2px; padding: 0 1px; }
 
@@ -218,6 +225,16 @@ def binom_tail(k, n, p):
   <h2 id="exam-2022">✅ 2022 Exam Solutions</h2>
 
   <h3>Problem 1 — Probability Warmup <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Let's say we have an exam question which consists of 20 yes/no questions. From past performance of similar students, a randomly chosen student will know the correct answer to $N \sim \text{binom}(20,\ 11/20)$ questions. Furthermore, we assume that the student will guess the answer with equal probability to each question they don't know the answer to, i.e. given $N$ we define $Z \sim \text{binom}(20-N,\ 1/2)$ as the number of correctly guessed answers. Define $Y = N + Z$, i.e., $Y$ represents the number of total correct answers.</p>
+    <p>We are interested in setting a deterministic threshold $T$, i.e., we would pass a student at threshold $T$ if $Y \geq T$. Here $T \in \{0, 1, 2, \ldots, 20\}$.</p>
+    <ol>
+      <li><strong>[5p]</strong> For each threshold $T$, compute the probability that the student <em>knows</em> less than 10 correct answers given that the student passed, i.e., $N &lt; 10$. Put the answer in <code>problem11_probabilities</code> as a list.</li>
+      <li><strong>[3p]</strong> What is the smallest value of $T$ such that if $Y \geq T$ then we are 90% certain that $N \geq 10$?</li>
+    </ol>
+  </div>
 
   <h4>Setup</h4>
   <ul>
