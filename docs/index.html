@@ -137,7 +137,7 @@
     <div class="section-header">Overview</div>
     <a href="#home">Home</a>
 
-    <div class="section-header">Cheat Sheets</div>
+    <div class="section-header">Reference Sheets</div>
     <a href="#prob-bayes">Probability & Bayes</a>
     <a href="#lcg-theory">LCG & Accept-Reject</a>
     <a href="#concentration-theory">Concentration of Measure</a>
@@ -165,7 +165,7 @@
 
   <div class="card-grid">
     <div class="card">
-      <h3>📐 Cheat Sheets</h3>
+      <h3>📐 Reference Sheets</h3>
       <p>Key formulas, added topic by topic as we cover each problem.</p>
       <span class="tag tag-navy">1 topic so far</span>
     </div>
@@ -181,8 +181,8 @@
     </div>
   </div>
 
-  <!-- ══ CHEAT SHEET ══ -->
-  <h2 id="prob-bayes">📐 Cheat Sheet — Probability & Bayes</h2>
+  <!-- ══ REFERENCE SHEET ══ -->
+  <h2 id="prob-bayes">📐 Reference Sheet — Probability & Bayes</h2>
   <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: 2022 Exam Problem 1</p>
 
   <h3>Binomial Distribution — $X \sim \text{Binom}(n, p)$</h3>
@@ -213,8 +213,8 @@
   <p><strong>Key insight:</strong> marginalise over all values of the conditioning variable. The numerator restricts the outer sum to the "bad" cases ($n < 10$).</p>
   <p><strong>Edge case:</strong> if $T - n \leq 0$, then $P(Z \geq T-n \mid N=n) = 1$.</p>
 
-  <!-- ══ CHEAT SHEET: LCG & ACCEPT-REJECT ══ -->
-  <h2 id="lcg-theory">📐 Cheat Sheet — LCG & Accept-Reject Sampling</h2>
+  <!-- ══ REFERENCE SHEET: LCG & ACCEPT-REJECT ══ -->
+  <h2 id="lcg-theory">📐 Reference Sheet — LCG & Accept-Reject Sampling</h2>
   <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: 2022 Exam Problem 2</p>
 
   <h3>Linear Congruential Generator (LCG)</h3>
@@ -279,8 +279,8 @@ def binom_tail(k, n, p):
     return sum(binom_pmf(z, n, p) for z in range(k, n + 1))
 </code></pre>
 
-  <!-- ══ CHEAT SHEET: CONCENTRATION OF MEASURE ══ -->
-  <h2 id="concentration-theory">📐 Cheat Sheet — Concentration of Measure</h2>
+  <!-- ══ REFERENCE SHEET: CONCENTRATION OF MEASURE ══ -->
+  <h2 id="concentration-theory">📐 Reference Sheet — Concentration of Measure</h2>
   <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: 2022 Exam Problem 3</p>
 
   <h3>Three Classes of Random Variables</h3>
@@ -314,6 +314,79 @@ def binom_tail(k, n, p):
     <tr><td>Emp. 10th moment of Bernoulli</td><td>✅</td><td>✅</td><td>$X^{10}=X$ for Bernoulli → reduces to bounded mean</td></tr>
   </table>
   <div class="callout">⚠️ Key rule for weak concentration: need $\mathbb{E}[X^{2k}] < \infty$ for the $k$-th empirical moment to weakly concentrate. Sub-Gaussian and sub-Exponential both have all moments finite.</div>
+
+  <!-- ══ REFERENCE SHEET: MARKOV CHAINS ══ -->
+  <h2 id="markov-chains">📐 Reference Sheet — Markov Chains</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problem 1</p>
+
+  <h3>Transition Matrix &amp; $n$-Step Probabilities</h3>
+  <p>A Markov chain with $d$ states has transition matrix $P \in \mathbb{R}^{d \times d}$ where $P_{ij} = P(X_{n+1}=j \mid X_n=i)$. Each row sums to 1.</p>
+  <div class="math-block">$$P(X_{n+k} = j \mid X_n = i) = (P^k)_{ij}$$</div>
+
+  <h3>First Passage (Hitting) Probability</h3>
+  <p>$f_{ij}^{(n)}$ = probability of reaching state $j$ for the <em>first time</em> at step $n$, starting from $i$. For 2 steps from $i$ to $j$:</p>
+  <div class="math-block">$$f_{ij}^{(2)} = \sum_{k \neq j} P_{ik} \cdot P_{kj}$$</div>
+  <div class="callout">⚠️ First-passage ≠ $n$-step probability. $(P^2)_{ij}$ counts all paths including those that pass through $j$ at step 1; $f_{ij}^{(2)}$ excludes those.</div>
+
+  <h3>Irreducibility</h3>
+  <p>A chain is <strong>irreducible</strong> if every state is reachable from every other state. Check: is the transition graph strongly connected?</p>
+
+  <h3>Stationary Distribution</h3>
+  <p>Row vector $\pi$ with $\pi P = \pi$ and $\sum_i \pi_i = 1$. Solved as a linear system:</p>
+  <div class="math-block">$$(P^\top - I)\,\pi = 0, \qquad \mathbf{1}^\top \pi = 1$$</div>
+<pre><code class="language-python">import numpy as np
+P = np.array([[0.3, 0.4, 0.3],
+              [0.2, 0.5, 0.3],
+              [0.4, 0.3, 0.3]])
+A = P.T - np.eye(3)
+A[-1, :] = [1, 1, 1]   # replace last row with normalisation constraint
+b = np.array([0, 0, 1])
+pi = np.linalg.solve(A, b)   # π ≈ [0.295, 0.421, 0.284]
+</code></pre>
+
+  <h3>Expected Hitting Time</h3>
+  <p>$h_i$ = expected steps to first reach target state $T$ from state $i$. Set $h_T = 0$ and solve:</p>
+  <div class="math-block">$$h_i = 1 + \sum_{j \neq T} P_{ij}\, h_j$$</div>
+<pre><code class="language-python"># Expected steps to Downtown (index 0) from Suburbs (1) or Countryside (2)
+# h_S = 1 + 0.5*h_S + 0.3*h_C  →  0.5*h_S - 0.3*h_C = 1
+# h_C = 1 + 0.3*h_S + 0.3*h_C  → -0.3*h_S + 0.7*h_C = 1
+A2 = np.array([[0.5, -0.3],
+               [-0.3, 0.7]])
+h_S, h_C = np.linalg.solve(A2, [1, 1])
+</code></pre>
+
+  <!-- ══ REFERENCE SHEET: MLE ══ -->
+  <h2 id="mle-theory">📐 Reference Sheet — Maximum Likelihood Estimation</h2>
+  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problems 2–3</p>
+
+  <h3>Log-Likelihood for IID Samples</h3>
+  <div class="math-block">
+    $$\ell(\theta) = \sum_{i=1}^n \log f(x_i;\,\theta)$$
+    $$\hat\theta_{\text{MLE}} = \arg\max_\theta\,\ell(\theta) \equiv \arg\min_\theta\bigl(-\ell(\theta)\bigr)$$
+  </div>
+
+  <h3>Numerical MLE via <code>scipy.optimize.minimize</code></h3>
+<pre><code class="language-python">import numpy as np
+from scipy import optimize
+
+def neg_log_lik(params):
+    mu, sigma = params
+    vals = (1/(sigma*np.sqrt(2*np.pi))) * np.exp(-0.5*((data-mu)/sigma)**2)
+    vals = np.maximum(vals, 1e-300)   # numerical safety
+    return -np.sum(np.log(vals))
+
+result = optimize.minimize(neg_log_lik, x0=[0, 1],
+                           bounds=[(-20, 20), (0.2, 8.0)])
+mu_hat, sigma_hat = result.x
+</code></pre>
+
+  <h3>Analytical MLE — Gamma-type Distribution</h3>
+  <p>For $f(x;\lambda) = \frac{1}{24}\lambda^5 x^4 e^{-\lambda x}$ (shape $k=5$, rate $\lambda$):</p>
+  <div class="math-block">
+    $$\ell(\lambda) = 5n\log\lambda - \lambda\sum x_i + \text{const}$$
+    $$\frac{d\ell}{d\lambda} = \frac{5n}{\lambda} - \sum x_i = 0 \implies \hat\lambda_{\text{MLE}} = \frac{5}{\bar{x}}$$
+  </div>
+  <p><strong>General rule for Gamma$(\alpha, \lambda)$:</strong> $\hat\lambda_{\text{MLE}} = \alpha / \bar{x}$.</p>
 
   <!-- ══ SNIPPET: LCG & SAMPLER ══ -->
   <h2 id="snip-lcg">💻 Snippet — LCG & Accept-Reject Sampler</h2>
@@ -518,79 +591,6 @@ def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, 
 # All sub-Gaussian and sub-Exponential RVs have all moments finite → Chebyshev applies
 # Item 3 (mean of finite variance) weakly concentrates via Chebyshev directly
 </code></pre>
-
-  <!-- ══ CHEAT SHEET: MARKOV CHAINS ══ -->
-  <h2 id="markov-chains">📐 Cheat Sheet — Markov Chains</h2>
-  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problem 1</p>
-
-  <h3>Transition Matrix &amp; $n$-Step Probabilities</h3>
-  <p>A Markov chain with $d$ states has transition matrix $P \in \mathbb{R}^{d \times d}$ where $P_{ij} = P(X_{n+1}=j \mid X_n=i)$. Each row sums to 1.</p>
-  <div class="math-block">$$P(X_{n+k} = j \mid X_n = i) = (P^k)_{ij}$$</div>
-
-  <h3>First Passage (Hitting) Probability</h3>
-  <p>$f_{ij}^{(n)}$ = probability of reaching state $j$ for the <em>first time</em> at step $n$, starting from $i$. For 2 steps from $i$ to $j$:</p>
-  <div class="math-block">$$f_{ij}^{(2)} = \sum_{k \neq j} P_{ik} \cdot P_{kj}$$</div>
-  <div class="callout">⚠️ First-passage ≠ $n$-step probability. $(P^2)_{ij}$ counts all paths including those that pass through $j$ at step 1; $f_{ij}^{(2)}$ excludes those.</div>
-
-  <h3>Irreducibility</h3>
-  <p>A chain is <strong>irreducible</strong> if every state is reachable from every other state. Check: is the transition graph strongly connected?</p>
-
-  <h3>Stationary Distribution</h3>
-  <p>Row vector $\pi$ with $\pi P = \pi$ and $\sum_i \pi_i = 1$. Solved as a linear system:</p>
-  <div class="math-block">$$(P^\top - I)\,\pi = 0, \qquad \mathbf{1}^\top \pi = 1$$</div>
-<pre><code class="language-python">import numpy as np
-P = np.array([[0.3, 0.4, 0.3],
-              [0.2, 0.5, 0.3],
-              [0.4, 0.3, 0.3]])
-A = P.T - np.eye(3)
-A[-1, :] = [1, 1, 1]   # replace last row with normalisation constraint
-b = np.array([0, 0, 1])
-pi = np.linalg.solve(A, b)   # π ≈ [0.295, 0.421, 0.284]
-</code></pre>
-
-  <h3>Expected Hitting Time</h3>
-  <p>$h_i$ = expected steps to first reach target state $T$ from state $i$. Set $h_T = 0$ and solve:</p>
-  <div class="math-block">$$h_i = 1 + \sum_{j \neq T} P_{ij}\, h_j$$</div>
-<pre><code class="language-python"># Expected steps to Downtown (index 0) from Suburbs (1) or Countryside (2)
-# h_S = 1 + 0.5*h_S + 0.3*h_C  →  0.5*h_S - 0.3*h_C = 1
-# h_C = 1 + 0.3*h_S + 0.3*h_C  → -0.3*h_S + 0.7*h_C = 1
-A2 = np.array([[0.5, -0.3],
-               [-0.3, 0.7]])
-h_S, h_C = np.linalg.solve(A2, [1, 1])
-</code></pre>
-
-  <!-- ══ CHEAT SHEET: MLE ══ -->
-  <h2 id="mle-theory">📐 Cheat Sheet — Maximum Likelihood Estimation</h2>
-  <p style="color:var(--muted); font-size:13px; margin-top:-8px; margin-bottom:18px;">Covered in: Assignment 2 Problems 2–3</p>
-
-  <h3>Log-Likelihood for IID Samples</h3>
-  <div class="math-block">
-    $$\ell(\theta) = \sum_{i=1}^n \log f(x_i;\,\theta)$$
-    $$\hat\theta_{\text{MLE}} = \arg\max_\theta\,\ell(\theta) \equiv \arg\min_\theta\bigl(-\ell(\theta)\bigr)$$
-  </div>
-
-  <h3>Numerical MLE via <code>scipy.optimize.minimize</code></h3>
-<pre><code class="language-python">import numpy as np
-from scipy import optimize
-
-def neg_log_lik(params):
-    mu, sigma = params
-    vals = (1/(sigma*np.sqrt(2*np.pi))) * np.exp(-0.5*((data-mu)/sigma)**2)
-    vals = np.maximum(vals, 1e-300)   # numerical safety
-    return -np.sum(np.log(vals))
-
-result = optimize.minimize(neg_log_lik, x0=[0, 1],
-                           bounds=[(-20, 20), (0.2, 8.0)])
-mu_hat, sigma_hat = result.x
-</code></pre>
-
-  <h3>Analytical MLE — Gamma-type Distribution</h3>
-  <p>For $f(x;\lambda) = \frac{1}{24}\lambda^5 x^4 e^{-\lambda x}$ (shape $k=5$, rate $\lambda$):</p>
-  <div class="math-block">
-    $$\ell(\lambda) = 5n\log\lambda - \lambda\sum x_i + \text{const}$$
-    $$\frac{d\ell}{d\lambda} = \frac{5n}{\lambda} - \sum x_i = 0 \implies \hat\lambda_{\text{MLE}} = \frac{5}{\bar{x}}$$
-  </div>
-  <p><strong>General rule for Gamma$(\alpha, \lambda)$:</strong> $\hat\lambda_{\text{MLE}} = \alpha / \bar{x}$.</p>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
   <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
