@@ -177,7 +177,7 @@
     <div class="card">
       <h3>✅ Solved Exams</h3>
       <p>Clean, commented solutions built problem by problem.</p>
-      <span class="tag tag-green">2022 P1–P3 done</span>
+      <span class="tag tag-green">2022 P1–P4 done</span>
     </div>
   </div>
 
@@ -590,6 +590,63 @@ def problem2_accept_reject(uniformGenerator=None, size=None, n_iterations=None, 
 # Excluded: 4 (variance of finite variance) — needs E[X⁴]<∞, not guaranteed
 # All sub-Gaussian and sub-Exponential RVs have all moments finite → Chebyshev applies
 # Item 3 (mean of finite variance) weakly concentrates via Chebyshev directly
+</code></pre>
+
+  <!-- ── Problem 4 ── -->
+  <h3>Problem 4 — SMS Spam Filtering <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>In the following problem we will explore SMS spam texts. The result is a <code>list</code> of <code>tuples</code> with the first position being the SMS text and the second being a flag <code>0 = not spam</code> and <code>1 = spam</code>.</p>
+    <ol>
+      <li><strong>[3p]</strong> Let $X$ be the random variable representing each SMS text, and $Y$ whether it is spam ($Y \in \{0,1\}$). Estimate $\mathbb{P}(Y = 1 \mid \text{"free" or "prize" is in } X)$. Hint: use <code>text.lower()</code> to catch "Free", "Prize" etc.</li>
+      <li><strong>[3p]</strong> Use Hoeffding's inequality to find $l > 0$ such that $\mathbb{P}(\hat{P} - l \leq \mathbb{E}[\hat{P}] \leq \hat{P} + l) \geq 0.9$.</li>
+      <li><strong>[2p]</strong> Repeat both exercises above for "free" appearing <strong>twice</strong> in the SMS.</li>
+    </ol>
+  </div>
+
+  <h4>Setup</h4>
+  <ul>
+    <li>$n$ for Hoeffding = number of messages containing the keyword(s) — the sample space of the conditional probability</li>
+    <li>90% confidence → $\delta = 0.1$ → $l = \sqrt{\frac{\log(2/\delta)}{2n}}$</li>
+    <li>Note: when $n$ is small the upper bound can exceed 1 — Hoeffding is conservative and doesn't know probabilities are capped at 1</li>
+  </ul>
+
+  <h4>Part 1 (3p) — $\hat{P}(Y=1 \mid \text{"free" or "prize"})$</h4>
+<pre><code class="language-python">denominator = 0   # messages containing "free" or "prize"
+numerator   = 0   # of those, how many are spam
+
+for text, label in spam_no_spam:
+    text = text.lower()
+    if "free" in text or "prize" in text:
+        denominator += 1
+        if label == 1:
+            numerator += 1
+
+problem4_hatP = numerator / denominator
+</code></pre>
+
+  <h4>Part 2 (3p) — Hoeffding 90% interval</h4>
+<pre><code class="language-python">import math
+d = 0.1          # δ: 1 - 0.9 = 0.1
+n = denominator  # sample size = messages with keyword
+problem4_l = math.sqrt(math.log(2/d) / (2*n))
+# interval: [hatP - l, hatP + l]  (clip to [0,1] if needed)
+</code></pre>
+
+  <h4>Part 3 (2p) — Repeat for "free" appearing twice</h4>
+<pre><code class="language-python">denominator2 = 0
+numerator2   = 0
+
+for text, label in spam_no_spam:
+    if text.lower().count("free") >= 2:
+        denominator2 += 1
+        if label == 1:
+            numerator2 += 1
+
+problem4_hatP2 = numerator2 / denominator2
+problem4_l2    = math.sqrt(math.log(2/d) / (2*denominator2))
+# n is small → l2 > 0.4, upper bound may exceed 1 (expected, not a bug)
 </code></pre>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
