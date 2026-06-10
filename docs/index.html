@@ -151,6 +151,7 @@
     <div class="section-header">Solved Exams</div>
     <a href="#exam-2022">2022 Exam</a>
     <a href="#exam-2022-p5" style="padding-left:28px; font-size:12.5px;">↳ P5 Markov Travel</a>
+    <a href="#exam-2022-p6" style="padding-left:28px; font-size:12.5px;">↳ P6 Black Box Testing</a>
 
     <div class="section-header">Assignments</div>
     <a href="#assign-1">Assignment 1</a>
@@ -178,7 +179,7 @@
     <div class="card">
       <h3>✅ Solved Exams</h3>
       <p>Clean, commented solutions built problem by problem.</p>
-      <span class="tag tag-green">2022 P1–P5 done</span>
+      <span class="tag tag-green">2022 P1–P6 done</span>
     </div>
   </div>
 
@@ -725,6 +726,70 @@ a  = cityToIndex['Aracaju (SE)']
 return_probability_problem5 = P3[a, a]
 # → ≈ 0.1333
 </code></pre>
+
+  <!-- ── Problem 6 ── -->
+  <h3 id="exam-2022-p6">Problem 6 — Black Box Testing <span class="pts">8p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Continuing with the SMS spam/no-spam data, approached as a pattern-recognition problem. Data is pre-split into train/test, and a "black box" model has been fit on the training data and produces predictions on the test set, stored in <code>predictions_problem6</code> (true labels in <code>Y_test_problem6</code>).</p>
+    <ol>
+      <li><strong>[2p]</strong> Compute precision for class 1, then provide a 95% Hoeffding confidence interval.</li>
+      <li><strong>[2p]</strong> Compute recall for class 1, then provide a 95% Hoeffding confidence interval.</li>
+      <li><strong>[2p]</strong> Compute accuracy (0–1 loss), then provide a 95% Hoeffding confidence interval.</li>
+      <li><strong>[2p]</strong> If we used a classifier with VC-dimension 3 instead, would the interval for accuracy on all the data be smaller?</li>
+    </ol>
+  </div>
+
+  <h4>Setup — confusion matrix</h4>
+  <p>From <code>Y_test_problem6</code> vs. <code>predictions_problem6</code>: $TP=4,\ FP=1,\ FN=1,\ TN=4$ (total $n=10$).</p>
+  <ul>
+    <li>Precision $= \dfrac{TP}{TP+FP}$ — "of predicted positives, how many are correct"</li>
+    <li>Recall $= \dfrac{TP}{TP+FN}$ — "of actual positives, how many were found"</li>
+    <li>Accuracy $= \dfrac{TP+TN}{TP+FP+FN+TN}$</li>
+    <li>95% confidence → $\delta = 0.05$ → $l = \sqrt{\frac{\log(2/\delta)}{2n}}$, where $n$ is the sample size relevant to that metric (denominator of the metric)</li>
+  </ul>
+
+  <h4>Part 1 (2p) — Precision + 95% interval</h4>
+<pre><code class="language-python">import math
+
+problem6_precision = TP / (TP + FP)                    # → 0.8
+
+d = 0.05
+n = TP + FP                                             # n = 5
+problem6_precision_l = math.sqrt(math.log(2/d) / (2*n))
+# CI: (max(0, P-l), min(1, P+l)) → (0.1926, 1.0)
+</code></pre>
+
+  <h4>Part 2 (2p) — Recall + 95% interval</h4>
+<pre><code class="language-python">problem6_recall = TP / (TP + FN)                        # → 0.8
+
+n = TP + FN                                             # n = 5
+problem6_recall_l = math.sqrt(math.log(2/d) / (2*n))
+# CI: (0.1926, 1.0)
+</code></pre>
+
+  <h4>Part 3 (2p) — Accuracy + 95% interval</h4>
+<pre><code class="language-python">problem6_accuracy = (TP + TN) / (TP + FP + FN + TN)     # → 0.8
+
+n = TP + FP + FN + TN                                   # n = 10
+problem6_accuracy_l = math.sqrt(math.log(2/d) / (2*n))
+# → ≈ 0.4295, CI: (0.3705, 1.0)
+</code></pre>
+
+  <h4>Part 4 (2p) — VC-dimension bound comparison</h4>
+  <p>Generalization bound for a hypothesis class with VC-dimension $d_{vc}$: $l_{VC} = \sqrt{\dfrac{8}{n}\left(d_{vc}\ln\dfrac{2n}{d_{vc}} + \ln\dfrac{4}{\delta}\right)}$.</p>
+<pre><code class="language-python">d_vc    = 3
+n_total = len(Y_test_problem6)   # in real exam: full dataset size (train+test)
+delta   = 0.05
+
+problem6_VC_l = math.sqrt((8/n_total) * (d_vc*math.log(2*n_total/d_vc) + math.log(4/delta)))
+# → ≈ 2.8388
+
+problem6_VC_smaller = problem6_VC_l < problem6_accuracy_l
+# → False
+</code></pre>
+  <div class="callout">💡 <code>problem6_VC_smaller = False</code> makes sense: the Hoeffding bound (Part 3) applies to <em>one fixed, already-trained</em> classifier, while the VC bound must hold <em>uniformly over the entire hypothesis class</em> — it pays an extra "search penalty" $d_{vc}\ln(2n/d_{vc})$ for the risk of overfitting during model selection. With only $n=10$ points that penalty dominates, so $l_{VC} \gg l_{\text{acc}}$.</div>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
   <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
