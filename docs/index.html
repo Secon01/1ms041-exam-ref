@@ -95,6 +95,15 @@
     /* ── Callout ── */
     .callout { background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; padding: 11px 16px; margin: 12px 0; font-size: 13.5px; color: #7c2d12; }
 
+    /* ── My written answer (verbatim, reusable in exam) ── */
+    .my-answer { background: var(--green-lt); border: 1px solid var(--green-bd); border-left: 4px solid var(--green); border-radius: 0 8px 8px 0; padding: 14px 20px; margin: 12px 0 18px; font-size: 13.5px; color: #064e3b; }
+    .my-answer-label { font-size: 10.5px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .my-answer p { color: #064e3b; margin-bottom: 8px; }
+    .my-answer p:last-child { margin-bottom: 0; }
+    .my-answer code { background: #d1fae5; border: 1px solid var(--green-bd); border-radius: 4px; padding: 1px 6px; font-size: 12.5px; color: #047857; }
+    .my-answer pre { background: #ffffff !important; border: 1px solid var(--green-bd); margin: 8px 0; }
+    .my-answer strong { color: #065f46; }
+
     /* ── Problem statement box ── */
     .problem-statement { background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--navy); border-radius: 0 8px 8px 0; padding: 18px 22px; margin: 14px 0 22px; }
     .problem-statement-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--navy); margin-bottom: 10px; }
@@ -851,6 +860,11 @@ problem1_p1 = P2[1, 0]   # row S (index 1), col D (index 0)
 </code></pre>
   <p><strong>Justification:</strong> every entry of $P$ is strictly positive, so every state can reach every other state in a single step. Hence the chain consists of one communicating class and is irreducible.</p>
 
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p>Since all entries of P are strictly positive, every state communicates with every other state in a single step, so the chain consists of one communicating class and is irreducible.</p>
+  </div>
+
   <h4>Part 4 (3p) — Stationary distribution</h4>
   <p>$\pi$ satisfies $\pi P = \pi$ and $\sum_i \pi_i = 1$ — equivalently $\pi^\top$ is the eigenvector of $P^\top$ for eigenvalue 1, normalized to sum to 1.</p>
 <pre><code class="language-python">A = np.vstack([(P.T - np.eye(3))[:2], np.ones(3)])
@@ -875,6 +889,23 @@ h = np.linalg.solve(np.eye(2) - Q, np.ones(2))
 problem1_ET = h[0]   # h_D ≈ 2.7027 = 100/37
 </code></pre>
   <div class="callout">💡 $(I-Q)^{-1}$ is the <strong>fundamental matrix</strong> of the absorbing chain (with S absorbing) — its row sums give the expected time-to-absorption from each transient state. $\det(I-Q)=0.37$, so $h_D=1.0/0.37=100/37\approx2.7027$.</div>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Method: First-step analysis (fundamental matrix of the absorbing chain)</strong></p>
+    <p>Let <code>h_D = E_D[T_S]</code> and <code>h_C = E_C[T_S]</code> denote the expected number of steps to first reach Suburbs (S), starting from Downtown (D) and Countryside (C) respectively.</p>
+    <p>Treating S as absorbing, conditioning on the first transition gives:</p>
+<pre><code>h_D = 1 + P_DD * h_D + P_DC * h_C
+h_C = 1 + P_CD * h_D + P_CC * h_C</code></pre>
+    <p>since a transition into S contributes 0 to the remaining expected time.</p>
+    <p>In matrix form, with</p>
+<pre><code>Q = [[P_DD, P_DC],     [[0.3, 0.3],
+     [P_CD, P_CC]]  =   [0.4, 0.3]]</code></pre>
+    <p>the sub-stochastic matrix restricted to the transient states {D, C}, the vector of expected hitting times is:</p>
+<pre><code>h = (I - Q)^-1 * 1</code></pre>
+    <p>Solving numerically gives <code>h_D ≈ 2.7027</code> (and <code>h_C ≈ 2.9730</code>). Exactly, <code>det(I - Q) = 0.37</code>, so <code>h_D = 1.0 / 0.37 = 100/37</code>.</p>
+    <p><strong>Interpretation:</strong> Starting in Downtown, a truck takes on average about <strong>2.70</strong> time steps before it first visits the Suburbs region. This matches intuition: <code>P(D→S) = 0.4</code> is the largest single transition probability out of Downtown, so reaching Suburbs tends to happen fairly quickly — but self-transitions (<code>P(D→D) = 0.3</code>) and detours through Countryside (<code>P(D→C) = 0.3</code> then <code>P(C→S) = 0.3</code>) add to the expected delay.</p>
+  </div>
 
   <!-- ── Problem 2 ── -->
   <h3 id="exam-2023-p2">Problem 2 — Linear Regression: Abalone Age <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
@@ -956,6 +987,16 @@ plt.show()
     <li><strong>Overall.</strong> Plain linear regression captures the broad trend (bigger/heavier shells → more rings) but lacks the flexibility to model the non-linear saturation at higher ages. A non-linear model or a log-transformed target could reduce the MAE further.</li>
   </ul>
 
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Discussion on the value of the MAE</strong></p>
+    <p>The MAE is approximately <strong>1.63 rings</strong>. Since <code>Rings</code> ranges from 1 to 29 with a mean around 9.9, an average error of ~1.63 rings is roughly 16% of the mean target value. This is a moderate error: not catastrophic, but far from precise — for an abalone of average age, the model's prediction is typically off by more than a year and a half (since age ≈ rings + 1.5 years).</p>
+    <p><strong>Discussion on the predicted vs. true scatterplot</strong></p>
+    <p>The points form a rough positive trend around the y = x line, but with substantial spread, especially at higher ring counts. The model systematically <em>underestimates</em> for very old abalones (high true Rings, predictions cluster lower) — the relationship between the physical measurements and Rings is not perfectly linear, and older abalones show more variability in shell measurements relative to age.</p>
+    <p><strong>Discussion</strong></p>
+    <p>Overall, a plain linear regression captures the broad trend (larger/heavier shells → more rings) but lacks the flexibility to model the non-linear saturation at higher ages. A non-linear model (e.g. polynomial features, random forest) or a log-transform of the target could likely reduce the MAE further.</p>
+  </div>
+
   <!-- ── Problem 3 ── -->
   <h3 id="exam-2023-p3">Problem 3 — Poisson Regression: Doctor Visits <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
 
@@ -983,6 +1024,18 @@ problem3_features = ["exclhlth", "poorhlth", "numchron", "adldiff",
 problem3_target = "ofp"
 </code></pre>
   <div class="callout">⚠️ <code>ofnp</code>, <code>opp</code>, <code>opnp</code>, <code>emr</code>, <code>hosp</code> are <em>other</em> utilization counts measured over the same period as <code>ofp</code> — co-determined outcomes, not pre-existing patient characteristics. Using them as features would be a form of leakage, so they're excluded. The remaining 15 demographic/health-status/insurance variables are exogenous "patient characteristics" and form the feature set (≈290 obs/feature with $n=4406$ — comfortably enough data for 15 features).</div>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>What features are reasonable?</strong></p>
+    <p>The target is <code>ofp</code> (number of physician office visits). The variables <code>ofnp</code>, <code>opp</code>, <code>opnp</code>, <code>emr</code>, <code>hosp</code> are <strong>other healthcare utilization counts</strong>, measured over the same period as <code>ofp</code> — they are co-determined outcomes, not pre-existing patient characteristics. Including them would be a form of leakage/circular reasoning (using one outcome to predict another), so they are excluded. The remaining 15 variables (health status, demographics, socioeconomic status, insurance) are exogenous "patient characteristics" available independent of the visit count itself, so they form <code>problem3_features</code>.</p>
+    <p><strong>In regards to how much data we have, how many features do you think we should aim for?</strong></p>
+    <p>We have 4406 observations and 15 candidate features — a ratio of ~290 observations per parameter, comfortably above common rules of thumb (e.g. 10-20 obs/parameter) for avoiding overfitting in a linear model, so using all 15 is reasonable.</p>
+    <p><strong>What other features would you like to have used but was not collected?</strong></p>
+    <p>Specific chronic diagnoses (vs. just a count), medication usage, distance/access to a primary care provider, smoking/alcohol use, and BMI would likely add predictive value beyond what is captured here.</p>
+    <p><strong>Discussion</strong></p>
+    <p>By excluding the other utilization variables we keep the model interpretable as "patient characteristics → expected visit count", which matches the stated goal.</p>
+  </div>
 
   <h4>Part 2 (3p) — Build X/y, train/test split</h4>
 <pre><code class="language-python">import numpy as np
@@ -1045,6 +1098,14 @@ problem3_metric = mean_absolute_error(problem3_y_test, problem3_predictions)
     <li><strong>Result:</strong> model MAE ≈ 4.28 visits vs. a naive baseline that always predicts $\bar{y}_{\text{train}}\approx5.72$ (MAE ≈ 4.66) — an ~8% reduction.</li>
     <li><strong>Interpretation:</strong> the model improves on the naive baseline but only modestly — <code>ofp</code> has very high variance (many patients with 0 visits, a few with very many), so patient characteristics alone explain only part of the variation in visit counts.</li>
   </ul>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Discussion on reasonable metrics and discussion about the value of the metric</strong></p>
+    <p>Since <code>ofp</code> is a count (Poisson-distributed), Mean Absolute Error (MAE) is a natural, interpretable choice: it tells us the average number of visits the prediction is off by. The model achieves MAE ≈ 4.28 visits.</p>
+    <p><strong>Comparison with a naive model</strong></p>
+    <p>A naive baseline that always predicts the training mean (<code>y_train.mean() ≈ 5.72</code>) achieves MAE ≈ 4.66. The Poisson model improves on this naive baseline (4.28 vs 4.66, about an 8% reduction), but the improvement is modest — <code>ofp</code> has very high variance (many patients with 0 visits, a few with very many), so patient characteristics alone explain only part of the variation in visit counts.</p>
+  </div>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
   <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
