@@ -152,6 +152,10 @@
     <a href="#exam-2022">2022 Exam</a>
     <a href="#exam-2022-p5" style="padding-left:28px; font-size:12.5px;">↳ P5 Markov Travel</a>
     <a href="#exam-2022-p6" style="padding-left:28px; font-size:12.5px;">↳ P6 Black Box Testing</a>
+    <a href="#exam-2023">2023 Exam</a>
+    <a href="#exam-2023-p1" style="padding-left:28px; font-size:12.5px;">↳ P1 Markov Chain</a>
+    <a href="#exam-2023-p2" style="padding-left:28px; font-size:12.5px;">↳ P2 Linear Regression</a>
+    <a href="#exam-2023-p3" style="padding-left:28px; font-size:12.5px;">↳ P3 Poisson Regression</a>
 
     <div class="section-header">Assignments</div>
     <a href="#assign-1">Assignment 1</a>
@@ -180,6 +184,7 @@
       <h3>✅ Solved Exams</h3>
       <p>Clean, commented solutions built problem by problem.</p>
       <span class="tag tag-green">2022 P1–P6 done</span>
+      <span class="tag tag-green">2023 P1–P3 done</span>
     </div>
   </div>
 
@@ -790,6 +795,256 @@ problem6_VC_smaller = problem6_VC_l < problem6_accuracy_l
 # → False
 </code></pre>
   <div class="callout">💡 <code>problem6_VC_smaller = False</code> makes sense: the Hoeffding bound (Part 3) applies to <em>one fixed, already-trained</em> classifier, while the VC bound must hold <em>uniformly over the entire hypothesis class</em> — it pays an extra "search penalty" $d_{vc}\ln(2n/d_{vc})$ for the risk of overfitting during model selection. With only $n=10$ points that penalty dominates, so $l_{VC} \gg l_{\text{acc}}$.</div>
+
+  <!-- ══ 2023 EXAM ══ -->
+  <h2 id="exam-2023">✅ 2023 Exam Solutions</h2>
+
+  <!-- ── Problem 1 ── -->
+  <h3 id="exam-2023-p1">Problem 1 — Markov Chain: Delivery Trucks <span class="pts">14p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>A courier company's trucks move between three regions — Downtown (D), Suburbs (S), Countryside (C) — according to the transition matrix:</p>
+    <table>
+      <tr><th>Current region</th><th>→ Downtown</th><th>→ Suburbs</th><th>→ Countryside</th></tr>
+      <tr><td>Downtown</td><td>0.3</td><td>0.4</td><td>0.3</td></tr>
+      <tr><td>Suburbs</td><td>0.2</td><td>0.5</td><td>0.3</td></tr>
+      <tr><td>Countryside</td><td>0.4</td><td>0.3</td><td>0.3</td></tr>
+    </table>
+    <ol>
+      <li><strong>[2p]</strong> If a truck is currently in the Suburbs, what is the probability that it will be in the Downtown region after two time steps?</li>
+      <li><strong>[2p]</strong> If a truck is currently in the Suburbs, what is the probability that it will be in the Downtown region <em>the first time</em> after two time steps?</li>
+      <li><strong>[3p]</strong> Is this Markov chain irreducible? Explain your answer.</li>
+      <li><strong>[3p]</strong> What is the stationary distribution?</li>
+      <li><strong>[4p]</strong> Advanced: What is the expected number of steps until the first time one enters the Suburbs region having started in Downtown? (within 1 decimal point, hitting times up to 30 steps suffice)</li>
+    </ol>
+  </div>
+
+  <h4>Setup</h4>
+<pre><code class="language-python">import numpy as np
+P = np.array([[0.3, 0.4, 0.3],
+               [0.2, 0.5, 0.3],
+               [0.4, 0.3, 0.3]])  # rows/cols ordered D, S, C
+</code></pre>
+
+  <h4>Part 1 (2p) — P(X₂=D | X₀=S)</h4>
+  <p>By Chapman-Kolmogorov, $n$-step transition probabilities are given by the matrix power $P^n$ (matrix multiplication, not elementwise power).</p>
+<pre><code class="language-python">P2 = P @ P
+problem1_p1 = P2[1, 0]   # row S (index 1), col D (index 0)
+# → 0.28
+</code></pre>
+  <div class="callout">⚠️ Use <code>P @ P</code> (matrix multiplication), not <code>P**2</code> (elementwise) — Chapman-Kolmogorov requires matrix powers, not elementwise powers.</div>
+
+  <h4>Part 2 (2p) — first time Downtown is at step 2</h4>
+  <p>This is a <strong>first-passage</strong> probability: $X_1 \neq D$ AND $X_2 = D$. Decompose over the value of $X_1$, excluding the path that already visits D at step 1:</p>
+  <div class="math-block">
+    $$P(X_1\neq D, X_2=D \mid X_0=S) = P_{S,S}P_{S,D} + P_{S,C}P_{C,D}$$
+  </div>
+<pre><code class="language-python">problem1_p2 = P[1,1]*P[1,0] + P[1,2]*P[2,0]
+# = 0.5*0.2 + 0.3*0.4 = 0.22
+</code></pre>
+  <p>Sanity check: $0.28 - 0.22 = 0.06 = P_{S,D}P_{D,D}$ — the path excluded relative to Part 1. ✓</p>
+
+  <h4>Part 3 (3p) — Irreducibility</h4>
+  <p>A chain is <strong>irreducible</strong> if every state communicates with every other state, i.e. for all $i,j$ there exists $n$ with $(P^n)_{ij}>0$ — the chain forms a single communicating class.</p>
+<pre><code class="language-python">problem1_irreducible = True
+</code></pre>
+  <p><strong>Justification:</strong> every entry of $P$ is strictly positive, so every state can reach every other state in a single step. Hence the chain consists of one communicating class and is irreducible.</p>
+
+  <h4>Part 4 (3p) — Stationary distribution</h4>
+  <p>$\pi$ satisfies $\pi P = \pi$ and $\sum_i \pi_i = 1$ — equivalently $\pi^\top$ is the eigenvector of $P^\top$ for eigenvalue 1, normalized to sum to 1.</p>
+<pre><code class="language-python">A = np.vstack([(P.T - np.eye(3))[:2], np.ones(3)])
+b = np.array([0, 0, 1])
+problem1_stationary = np.linalg.solve(A, b)
+# → [0.28888889, 0.41111111, 0.3]
+</code></pre>
+  <div class="math-block">
+    $$\pi = \left(\tfrac{13}{45},\ \tfrac{37}{90},\ \tfrac{3}{10}\right) \approx (0.2889,\ 0.4111,\ 0.3)$$
+  </div>
+  <div class="callout">💡 We drop one row of $P^\top - I$ (the rows are linearly dependent by construction) and replace it with the normalization constraint $\sum_i\pi_i=1$ to get a well-posed linear system.</div>
+
+  <h4>Part 5 (4p) — Expected hitting time, Downtown → Suburbs</h4>
+  <p>Let $h_D=E_D[T_S]$, the expected number of steps to first reach S starting from D. By <strong>first-step analysis</strong>, for transient states $i\neq S$:</p>
+  <div class="math-block">
+    $$h_i = 1 + \sum_{j\neq S} P_{ij}\,h_j$$
+  </div>
+  <p>The transient states are $\{D,C\}$. With $Q=\begin{pmatrix}P_{DD}&P_{DC}\\P_{CD}&P_{CC}\end{pmatrix}=\begin{pmatrix}0.3&0.3\\0.4&0.3\end{pmatrix}$ (the sub-stochastic matrix over transient states), the fundamental matrix gives $\mathbf{h}=(I-Q)^{-1}\mathbf{1}$.</p>
+<pre><code class="language-python">Q = np.array([[0.3, 0.3],
+               [0.4, 0.3]])
+h = np.linalg.solve(np.eye(2) - Q, np.ones(2))
+problem1_ET = h[0]   # h_D ≈ 2.7027 = 100/37
+</code></pre>
+  <div class="callout">💡 $(I-Q)^{-1}$ is the <strong>fundamental matrix</strong> of the absorbing chain (with S absorbing) — its row sums give the expected time-to-absorption from each transient state. $\det(I-Q)=0.37$, so $h_D=1.0/0.37=100/37\approx2.7027$.</div>
+
+  <!-- ── Problem 2 ── -->
+  <h3 id="exam-2023-p2">Problem 2 — Linear Regression: Abalone Age <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Dataset: <code>data/abalone.csv</code> — physical measurements of abalone shells and their age, measured in <strong>Rings</strong>. Train a linear regression model to predict <code>Rings</code> from the physical measurements, using an 80/20 train/test split.</p>
+    <ol>
+      <li><strong>[2p]</strong> Load the data into <code>problem2_df</code>; identify features and target.</li>
+      <li><strong>[2p]</strong> Split into train/test (80/20, <code>random_state=42</code>).</li>
+      <li><strong>[1p]</strong> Train a linear regression model.</li>
+      <li><strong>[3p]</strong> Compute the MAE on the test set; plot the EDF of the residuals with 95% DKW confidence bands.</li>
+      <li><strong>[2p]</strong> Scatter plot of predicted vs. true values (test set).</li>
+      <li><strong>[3p]</strong> Discuss the model's performance.</li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (2p) — Load data, choose features/target</h4>
+<pre><code class="language-python">import pandas as pd
+
+problem2_df = pd.read_csv('data/abalone.csv')
+
+problem2_features = ["Length", "Diameter", "Height", "Whole weight",
+                      "Shucked weight", "Viscera weight", "Shell weight"]
+problem2_target = "Rings"
+</code></pre>
+  <p><code>Rings</code> is the target — it's what determines age. Every other column is a physical measurement available without cutting the shell open, so all are valid features.</p>
+
+  <h4>Part 2 (2p) — Train/test split</h4>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+problem2_X_train, problem2_X_test, problem2_y_train, problem2_y_test = train_test_split(
+    problem2_df[problem2_features],
+    problem2_df[problem2_target],
+    train_size=0.8,
+    random_state=42
+)
+</code></pre>
+
+  <h4>Part 3 (1p) — Train the model</h4>
+<pre><code class="language-python">from sklearn.linear_model import LinearRegression
+
+problem2_model = LinearRegression()
+problem2_model.fit(problem2_X_train, problem2_y_train)
+</code></pre>
+
+  <h4>Part 4 (3p) — MAE + EDF of residuals with DKW confidence bands</h4>
+<pre><code class="language-python">from sklearn.metrics import mean_absolute_error
+
+problem2_predictions = problem2_model.predict(problem2_X_test)
+problem2_mae = mean_absolute_error(problem2_y_test, problem2_predictions)
+# → ≈ 1.629
+
+from Utils import makeEDF, plotEDF
+
+problem2_residuals = problem2_y_test.values - problem2_predictions
+edf = makeEDF(problem2_residuals)
+plotEDF(edf, confidence_band=True, alpha=0.95,
+        title="EDF of residuals with 95% DKW confidence band")
+</code></pre>
+  <p><code>makeEDF</code> builds the empirical CDF of the residuals; <code>plotEDF(..., confidence_band=True)</code> overlays the DKW band $\sup_x|F_n(x)-F(x)|\le\varepsilon$ with $\varepsilon=\sqrt{\tfrac{1}{2n}\ln\tfrac{2}{1-\alpha}}$ — a 95% confidence envelope for the true residual CDF.</p>
+
+  <h4>Part 5 (2p) — Scatter plot: predicted vs. true</h4>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+plt.scatter(problem2_predictions, problem2_y_test)
+plt.xlabel("Predicted Rings")
+plt.ylabel("True Rings")
+plt.plot([problem2_y_test.min(), problem2_y_test.max()],
+         [problem2_y_test.min(), problem2_y_test.max()], 'r--')
+plt.title("Predicted vs True (test set)")
+plt.show()
+</code></pre>
+
+  <h4>Part 6 (3p) — Discussion</h4>
+  <ul>
+    <li><strong>MAE ≈ 1.63 rings.</strong> Since <code>Rings</code> ranges from 1–29 with mean ≈ 9.9, an average error of ~1.63 is roughly 16% of the mean target — moderate, but the prediction is typically off by more than 1.5 years (age ≈ rings + 1.5).</li>
+    <li><strong>Scatter plot.</strong> Points form a rough positive trend around the $y=x$ line but with substantial spread, especially at higher ring counts — the model systematically <em>underestimates</em> for very old abalones.</li>
+    <li><strong>Overall.</strong> Plain linear regression captures the broad trend (bigger/heavier shells → more rings) but lacks the flexibility to model the non-linear saturation at higher ages. A non-linear model or a log-transformed target could reduce the MAE further.</li>
+  </ul>
+
+  <!-- ── Problem 3 ── -->
+  <h3 id="exam-2023-p3">Problem 3 — Poisson Regression: Doctor Visits <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Dataset: <code>data/visits_clean.csv</code> — patient characteristics and healthcare utilization counts. Model <code>ofp</code> (number of physician office visits) as $Y\mid X\sim\text{Poisson}(\lambda(x))$, $\lambda(x)=\exp(\alpha\cdot x+\beta)$, i.e. $f_{Y\mid X}(y,x)=\dfrac{\lambda^y e^{-\lambda}}{y!}$.</p>
+    <ol>
+      <li><strong>[3p]</strong> Load <code>problem3_df</code>; decide and motivate features/target (hint: should we really use <code>ofnp</code> etc.?).</li>
+      <li><strong>[3p]</strong> Build <code>problem3_X</code>/<code>problem3_y</code> as numpy arrays; 80/20 train/test split, <code>random_state=42</code>.</li>
+      <li><strong>[2p]</strong> Derive the log-loss from the Poisson likelihood and implement it in <code>PoissonRegression.loss</code>.</li>
+      <li><strong>[2p]</strong> Train the <code>PoissonRegression</code> model on the training data.</li>
+      <li><strong>[3p]</strong> Choose/compute a reasonable evaluation metric, interpret it, and compare to a naive baseline.</li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (3p) — Load data, choose features/target</h4>
+<pre><code class="language-python">import pandas as pd
+
+problem3_df = pd.read_csv('data/visits_clean.csv', sep=r'\s+')
+
+problem3_features = ["exclhlth", "poorhlth", "numchron", "adldiff",
+                      "noreast", "midwest", "west", "age", "male",
+                      "married", "school", "faminc", "employed",
+                      "privins", "medicaid"]
+problem3_target = "ofp"
+</code></pre>
+  <div class="callout">⚠️ <code>ofnp</code>, <code>opp</code>, <code>opnp</code>, <code>emr</code>, <code>hosp</code> are <em>other</em> utilization counts measured over the same period as <code>ofp</code> — co-determined outcomes, not pre-existing patient characteristics. Using them as features would be a form of leakage, so they're excluded. The remaining 15 demographic/health-status/insurance variables are exogenous "patient characteristics" and form the feature set (≈290 obs/feature with $n=4406$ — comfortably enough data for 15 features).</div>
+
+  <h4>Part 2 (3p) — Build X/y, train/test split</h4>
+<pre><code class="language-python">import numpy as np
+from sklearn.model_selection import train_test_split
+
+problem3_X = problem3_df[problem3_features].to_numpy()
+problem3_y = problem3_df[problem3_target].to_numpy()
+
+problem3_X_train, problem3_X_test, problem3_y_train, problem3_y_test = train_test_split(
+    problem3_X, problem3_y, train_size=0.8, random_state=42
+)
+</code></pre>
+
+  <h4>Part 3 (2p) — Derive &amp; implement the Poisson log-loss</h4>
+  <p>For $Y\mid X\sim\text{Poisson}(\lambda(x))$, $f(y,x)=\dfrac{\lambda^y e^{-\lambda}}{y!}$. The log-likelihood per observation is $\log f = y\log\lambda - \lambda - \log(y!)$. The $\log(y!)$ term doesn't depend on $\alpha,\beta$, so it's dropped (also avoids numerical issues with factorials). The loss to <em>minimize</em> (negative log-likelihood, summed over the data) is:</p>
+  <div class="math-block">
+    $$L(\alpha,\beta) = \sum_i \left[\lambda_i - y_i\log\lambda_i\right], \quad \lambda_i=\exp(\alpha\cdot x_i+\beta)$$
+  </div>
+<pre><code class="language-python">class PoissonRegression(object):
+    def __init__(self):
+        self.coeffs = None
+        self.result = None
+
+    def fit(self, X, Y):
+        import numpy as np
+        from scipy import optimize
+
+        def loss(coeffs):
+            eta = np.dot(X, coeffs[:-1]) + coeffs[-1]  # = log(lambda)
+            lam = np.exp(eta)
+            return np.sum(lam - Y * eta)
+
+        initial_arguments = np.zeros(shape=X.shape[1]+1)
+        self.result = optimize.minimize(loss, initial_arguments, method='cg')
+        self.coeffs = self.result.x
+
+    def predict(self, X):
+        if self.coeffs is not None:
+            return np.exp(np.dot(X, self.coeffs[:-1]) + self.coeffs[-1])
+</code></pre>
+  <div class="callout">💡 Writing $\eta_i=\log\lambda_i$ (the linear predictor) and using $\lambda_i - y_i\eta_i$ instead of $\lambda_i - y_i\log\lambda_i$ avoids computing <code>exp</code> then <code>log</code> of the same quantity — more numerically stable.</div>
+
+  <h4>Part 4 (2p) — Fit the model</h4>
+<pre><code class="language-python">problem3_model = PoissonRegression()
+problem3_model.fit(problem3_X_train, problem3_y_train)
+
+print(problem3_model.result)
+</code></pre>
+  <div class="callout">⚠️ With <code>method='cg'</code>, <code>scipy</code> typically reports <code>success: False</code> ("Desired error not necessarily achieved due to precision loss") — but the loss value and coefficients match BFGS to ~5 decimal places, so the fit has effectively converged. This is a known quirk of <code>cg</code> near a flat minimum, not a failed fit.</div>
+
+  <h4>Part 5 (3p) — Evaluation metric + naive comparison</h4>
+<pre><code class="language-python">from sklearn.metrics import mean_absolute_error
+
+problem3_predictions = problem3_model.predict(problem3_X_test)
+problem3_metric = mean_absolute_error(problem3_y_test, problem3_predictions)
+# → ≈ 4.28
+</code></pre>
+  <ul>
+    <li><strong>Metric choice:</strong> MAE — <code>ofp</code> is a count, so MAE gives an interpretable "average number of visits off by".</li>
+    <li><strong>Result:</strong> model MAE ≈ 4.28 visits vs. a naive baseline that always predicts $\bar{y}_{\text{train}}\approx5.72$ (MAE ≈ 4.66) — an ~8% reduction.</li>
+    <li><strong>Interpretation:</strong> the model improves on the naive baseline but only modestly — <code>ofp</code> has very high variance (many patients with 0 visits, a few with very many), so patient characteristics alone explain only part of the variation in visit counts.</li>
+  </ul>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
   <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
