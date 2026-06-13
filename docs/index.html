@@ -173,6 +173,10 @@
     <a href="#exam-2024-p1" style="padding-left:28px; font-size:12.5px;">↳ P1 Rejection &amp; Inversion Sampling</a>
     <a href="#exam-2024-p2" style="padding-left:28px; font-size:12.5px;">↳ P2 Proportional Spam Classifier</a>
     <a href="#exam-2024-p3" style="padding-left:28px; font-size:12.5px;">↳ P3 Markov Chains</a>
+    <a href="#exam-2026">2026 Exam</a>
+    <a href="#exam-2026-p1" style="padding-left:28px; font-size:12.5px;">↳ P1 SVD &amp; Anomaly Detection</a>
+    <a href="#exam-2026-p2" style="padding-left:28px; font-size:12.5px;">↳ P2 ATO Cost Thresholding</a>
+    <a href="#exam-2026-p3" style="padding-left:28px; font-size:12.5px;">↳ P3 Courier Markov Chain</a>
 
     <div class="section-header">Assignments</div>
     <a href="#assign-1">Assignment 1</a>
@@ -203,6 +207,7 @@
       <span class="tag tag-green">2022 P1–P6 done</span>
       <span class="tag tag-green">2023 P1–P3 done</span>
       <span class="tag tag-green">2024 P1–P3 done</span>
+      <span class="tag tag-green">2026 P1–P3 done</span>
     </div>
   </div>
 
@@ -1507,6 +1512,335 @@ problem3_D_is_reversible = False
     <p><strong>Chain C — reversible.</strong> $\pi=(0,0,0,0.5,0.5)$. The only nonzero flow is $D\leftrightarrow E$: $\pi_DP_{DE}=0.5\cdot0.4=0.2=\pi_EP_{ED}=0.5\cdot0.4$. All other pairs are trivially $0=0$. Detailed balance holds.</p>
     <p><strong>Chain D — NOT reversible.</strong> Check the pair $(A,B)$ using $\pi_D=(20/31,19/93,8/93,2/31)$: $\pi_AP_{AB}=\frac{20}{31}\cdot0.2\approx0.1290$ but $\pi_BP_{BA}=\frac{19}{93}\cdot0.6\approx0.1226$. These are unequal, so detailed balance fails — Chain D is not reversible. (Intuitively, the extra edge $D\to A=0.1$ that made Chain D irreducible creates a "one-way" probability current around the cycle $A\to B\to C\to D\to A$ that Chain A doesn't have.)</p>
   </div>
+
+  <!-- ══ 2026 EXAM ══ -->
+  <h2 id="exam-2026">✅ 2026 Exam Solutions</h2>
+
+  <!-- ── Problem 1 ── -->
+  <h3 id="exam-2026-p1">Problem 1 — SVD &amp; Anomaly Detection <span class="pts">14p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>This problem is about <strong>SVD</strong> and a simple <strong>anomaly detection</strong> idea using low-rank reconstruction. Unless stated otherwise, when asked to produce a matrix or vector, it must be a NumPy array.</p>
+    <ol>
+      <li><strong>[4p]</strong> Load <code>data/SVD.csv</code>. Let $X$ be the data matrix of shape <code>n_samples × n_dimensions</code>. Compute an SVD $X = UDV^T$ where $U$ has shape <code>n_samples × n_dimensions</code>, $D$ is diagonal <code>n_dimensions × n_dimensions</code> with the singular values, and $V$ has shape <code>n_dimensions × n_dimensions</code>. <code>np.linalg.svd</code> returns <code>U, d, Vt</code> where <code>Vt</code> is $V^T$. Also extract the first right and left singular vectors as 1D arrays.</li>
+      <li><strong>[3p]</strong> For $N=$ <code>n_dimensions</code>, define $\mathrm{EV}(k) = \dfrac{\sum_{i=1}^k \sigma_i^2}{\sum_{i=1}^N \sigma_i^2}$. Compute $\mathrm{EV}(k)$ for $k=1,\dots,N$ in <code>problem1_explained_variance</code>, and set <code>problem1_num_components</code> to the smallest $k$ with $\mathrm{EV}(k)\ge0.99$.</li>
+      <li><strong>[3p]</strong> Plot explained variance ($x$: $k$, $y$: $\mathrm{EV}(k)$). In the markdown cell below, reason about the shape of the curve for this dataset.</li>
+      <li><strong>[4p]</strong> Using <code>problem1_num_components</code>, construct the best rank-$k$ approximation of $X$ in <code>problem1_approximation</code>. Compute row-wise reconstruction error $\|X_i-\hat X_i\|_2$ in <code>problem1_reconstruction_error</code>. Plot the EDF of the errors. Choose <code>problem1_threshold</code> so exactly 100 samples are flagged as outliers, and store them in <code>problem1_outliers</code> (shape <code>(100, n_dimensions)</code>).</li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (4p) — SVD decomposition</h4>
+  <p>The SVD factorizes $X = UDV^T$ where the columns of $U$ and $V$ are orthonormal (left/right singular vectors) and $D=\mathrm{diag}(\sigma_1,\dots,\sigma_N)$ with $\sigma_1\ge\sigma_2\ge\dots\ge0$. With <code>full_matrices=False</code> and $n\ge N$, <code>np.linalg.svd</code> returns $U\in\mathbb{R}^{n\times N}$, a 1D array of singular values, and $V^T\in\mathbb{R}^{N\times N}$ — exactly the shapes required.</p>
+<pre><code class="language-python"># Part 1
+import numpy as np
+import pandas as pd
+
+problem1_data = pd.read_csv("data/SVD.csv")
+problem1_data = np.array(problem1_data)
+print(problem1_data.shape)   # (1009, 100)
+print(problem1_data.dtype)   # float64
+
+problem1_U, singular_values, Vt = np.linalg.svd(problem1_data, full_matrices=False)
+problem1_D = np.diag(singular_values)
+problem1_V = Vt.T
+
+problem1_first_right_singular_vector = problem1_V[:, 0].flatten()
+problem1_first_left_singular_vector  = problem1_U[:, 0].flatten()
+</code></pre>
+  <div class="callout">⚠️ <code>np.linalg.svd</code> returns <code>Vt = V^T</code>, not $V$ — a very common point-loss. To recover $V$ you must transpose: <code>V = Vt.T</code>. Also remember <code>.flatten()</code> when extracting a single column/row, otherwise you keep a stray axis of length 1.</div>
+
+  <h4>Part 2 (3p) — Explained variance &amp; intrinsic dimensionality</h4>
+  <p>$\mathrm{EV}(k)$ is the cumulative share of the total "energy" $\sum\sigma_i^2$ captured by the first $k$ singular directions — it is monotonically increasing from $\mathrm{EV}(1)$ to $\mathrm{EV}(N)=1$.</p>
+  <div class="math-block">
+    $$\mathrm{EV}(k) = \frac{\sum_{i=1}^k \sigma_i^2}{\sum_{i=1}^N \sigma_i^2}$$
+  </div>
+<pre><code class="language-python"># Part 2
+sq_sv = singular_values**2
+problem1_explained_variance = np.cumsum(sq_sv) / np.sum(sq_sv)
+
+problem1_num_components = np.argmax(problem1_explained_variance >= 0.99) + 1
+# → 10
+</code></pre>
+  <div class="callout">💡 <code>np.argmax</code> on a boolean array returns the index of the <em>first</em> <code>True</code> — exactly "smallest $k$ such that...". The <code>+1</code> converts the 0-based index to a 1-based component count.</div>
+
+  <h4>Part 3 (3p) — Plot + interpretation</h4>
+<pre><code class="language-python"># Part 3
+import matplotlib.pyplot as plt
+
+plt.plot(range(1, len(problem1_explained_variance) + 1), problem1_explained_variance, marker='o')
+plt.axhline(0.99, color='red', linestyle='--', label='99% threshold')
+plt.xlabel("Number of components $k$")
+plt.ylabel("Explained variance EV(k)")
+plt.title("Explained variance vs. number of components")
+plt.legend()
+plt.show()
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p>The curve rises very steeply for the first ~10 components — reaching about 99% of total variance — and is then essentially flat (slope ≈ 0) all the way to $k=100$, where it equals 1 by definition. This shape indicates that the data has an intrinsic dimensionality of around 10: most of the structure/signal in the 100 measured features is actually generated by ~10 underlying latent factors, while the remaining ~90 directions each carry a tiny, roughly equal amount of variance — consistent with isotropic noise added on top of a low-rank signal.</p>
+  </div>
+
+  <h4>Part 4 (4p) — Low-rank reconstruction &amp; outlier threshold</h4>
+  <p>The best rank-$k$ approximation (Eckart–Young) keeps only the top $k$ singular triplets: $\hat X = U_{:,:k}D_{:k,:k}V_{:,:k}^T$. The reconstruction error is the row-wise residual norm $\|X_i-\hat X_i\|_2$ — large for the ~10 "outlier" rows that don't lie near the dominant 10-dimensional subspace.</p>
+<pre><code class="language-python"># Part 4
+k = problem1_num_components
+problem1_approximation = (
+    problem1_U[:, :k] @ problem1_D[:k, :k] @ problem1_V[:, :k].T
+)
+
+problem1_reconstruction_error = np.linalg.norm(problem1_data - problem1_approximation, axis=1)
+
+# Threshold sits between the 100th- and 101st-largest errors so exactly 100 rows exceed it
+sorted_err = np.sort(problem1_reconstruction_error)[::-1]
+problem1_threshold = (sorted_err[99] + sorted_err[100]) / 2  # ≈ 0.01473
+
+from Utils import makeEDF, plotEDF
+edf = makeEDF(problem1_reconstruction_error)
+plotEDF(edf, title="EDF of reconstruction error")
+plt.axvline(problem1_threshold, color='red', linestyle='--')
+plt.show()
+
+problem1_outliers = problem1_data[problem1_reconstruction_error > problem1_threshold]
+print(problem1_outliers.shape)  # (100, 100)
+</code></pre>
+  <div class="callout">💡 Taking the <em>midpoint</em> between the 100th- and 101st-largest errors (not the 100th value itself) guarantees the comparison <code>error > threshold</code> selects exactly the top 100 rows, regardless of tie-breaking or floating-point equality at the boundary.</div>
+
+  <!-- ── Problem 2 ── -->
+  <h3 id="exam-2026-p2">Problem 2 — ATO Cost-Based Thresholding <span class="pts">12p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>We are interested in <strong>account takeover (ATO) detection</strong>. You are given a classifier's predicted probability that a login attempt is malicious ($Y=1$). A threshold $t\in[0,1]$ converts $\hat p(x)$ to a label: predict $\hat y=1$ if $\hat p(x)\ge t$, else $0$.</p>
+    <p>Costs of each decision:</p>
+    <ul>
+      <li><strong>TP</strong>: 80 (extra verification + friction)</li>
+      <li><strong>TN</strong>: 0</li>
+      <li><strong>FP</strong>: 150 (support load + churn risk)</li>
+      <li><strong>FN</strong>: 900 (fraud + remediation)</li>
+    </ul>
+    <ol>
+      <li><strong>[3p]</strong> Complete <code>problem2_avg_cost</code> — average cost per sample at a given threshold. Plot cost vs. threshold (validation data), $t\in[0,1]$ step $0.01$.</li>
+      <li><strong>[2.5p]</strong> Find the cost-minimizing threshold and the cost there. Also compute precision &amp; recall treating <strong>class 1</strong> as positive, and separately treating <strong>class 0</strong> as positive.</li>
+      <li><strong>[2.5p]</strong> Repeat for the <strong>accuracy-maximizing</strong> (0-1-loss-minimizing) threshold. Compute the cost difference between this threshold and the one from Part 2.</li>
+      <li><strong>[4p]</strong> Give a 95% Hoeffding confidence interval for the optimal cost on the test data, stating all assumptions.</li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (3p) — Average cost function + cost-vs-threshold curve</h4>
+  <p>The average cost per sample is a weighted average of the confusion-matrix counts, weighted by the four costs given above:</p>
+  <div class="math-block">
+    $$\overline{\text{cost}}(t) = \frac{80\cdot TP(t) + 150\cdot FP(t) + 900\cdot FN(t) + 0\cdot TN(t)}{n}$$
+  </div>
+<pre><code class="language-python"># Part 1
+import numpy as np
+import matplotlib.pyplot as plt
+
+def problem2_avg_cost(y_true, y_predict_proba, threshold):
+    y_hat = (y_predict_proba >= threshold).astype(int)
+    tp = np.sum((y_hat == 1) & (y_true == 1))
+    fp = np.sum((y_hat == 1) & (y_true == 0))
+    fn = np.sum((y_hat == 0) & (y_true == 1))
+    tn = np.sum((y_hat == 0) & (y_true == 0))
+    total_cost = tp * 80 + fp * 150 + fn * 900 + tn * 0
+    return total_cost / len(y_true)
+
+thresholds = np.arange(0, 1.0 + 1e-9, 0.01)
+costs = [problem2_avg_cost(PROBLEM2_y_true_val, PROBLEM2_y_pred_proba_val, t) for t in thresholds]
+
+plt.plot(thresholds, costs)
+plt.xlabel("Threshold")
+plt.ylabel("Average cost per sample")
+plt.title("Average cost vs. threshold (validation data)")
+plt.show()
+</code></pre>
+  <div class="callout">⚠️ The <code>>=</code> in <code>y_hat = (y_predict_proba >= threshold)</code> matters at the boundaries $t=0$ (everything flagged, FN=0 but FP huge) and $t=1$ (almost nothing flagged, FP≈0 but FN huge) — the curve should be U-shaped with a clear interior minimum, since FN (900) is much more expensive than FP (150).</div>
+
+  <h4>Part 2 (2.5p) — Cost-optimal threshold, precision &amp; recall for both classes</h4>
+  <p>Precision and recall are computed from the confusion matrix with the chosen class as "positive":</p>
+  <div class="math-block">
+    $$\text{precision} = \frac{TP}{TP+FP}, \qquad \text{recall} = \frac{TP}{TP+FN}$$
+  </div>
+  <p>For class 0 as positive, swap the roles: a "positive" prediction is $\hat y=0$, and a "true positive" is $\hat y=0 \wedge y=0$.</p>
+<pre><code class="language-python"># Part 2
+idx_min = np.argmin(costs)
+problem2_threshold = thresholds[idx_min]    # ≈ 0.39
+problem2_cost_val  = costs[idx_min]         # ≈ 47.709
+
+problem2_y_pred_val = (PROBLEM2_y_pred_proba_val >= problem2_threshold).astype(int)
+
+# Class 1 as positive
+tp = np.sum((problem2_y_pred_val == 1) & (PROBLEM2_y_true_val == 1))
+fp = np.sum((problem2_y_pred_val == 1) & (PROBLEM2_y_true_val == 0))
+fn = np.sum((problem2_y_pred_val == 0) & (PROBLEM2_y_true_val == 1))
+problem2_precision_1 = tp / (tp + fp) if (tp + fp) > 0 else 0.0   # ≈ 0.7671
+problem2_recall_1    = tp / (tp + fn) if (tp + fn) > 0 else 0.0   # ≈ 0.9182
+
+# Class 0 as positive
+tp0 = np.sum((problem2_y_pred_val == 0) & (PROBLEM2_y_true_val == 0))
+fp0 = np.sum((problem2_y_pred_val == 0) & (PROBLEM2_y_true_val == 1))
+fn0 = np.sum((problem2_y_pred_val == 1) & (PROBLEM2_y_true_val == 0))
+problem2_precision_0 = tp0 / (tp0 + fp0) if (tp0 + fp0) > 0 else 0.0   # ≈ 0.9704
+problem2_recall_0    = tp0 / (tp0 + fn0) if (tp0 + fn0) > 0 else 0.0   # ≈ 0.9058
+</code></pre>
+  <div class="callout">💡 Class-0 recall ($\approx0.906$) is lower than class-0 precision ($\approx0.970$): at $t\approx0.39$ the model is conservative about clearing logins (high precision on "legitimate"), but still misclassifies a meaningful fraction of legitimate logins as malicious (the FP side), which is exactly the asymmetric cost trade-off the threshold is balancing against the much larger FN cost.</div>
+
+  <h4>Part 3 (2.5p) — Accuracy-optimal threshold &amp; cost difference</h4>
+  <p>The 0-1 loss (misclassification rate) is minimized — i.e. accuracy is maximized — independently of the asymmetric cost structure; this typically lands near $t=0.5$ rather than the cost-optimal $t\approx0.39$.</p>
+<pre><code class="language-python"># Part 3
+losses01 = [np.mean((PROBLEM2_y_pred_proba_val >= t).astype(int) != PROBLEM2_y_true_val) for t in thresholds]
+idx_acc = np.argmin(losses01)
+problem2_threshold_acc = thresholds[idx_acc]   # ≈ 0.85
+
+cost_at_cost_opt = problem2_avg_cost(PROBLEM2_y_true_val, PROBLEM2_y_pred_proba_val, problem2_threshold)
+cost_at_acc_opt  = problem2_avg_cost(PROBLEM2_y_true_val, PROBLEM2_y_pred_proba_val, problem2_threshold_acc)
+
+problem2_cost_difference = cost_at_acc_opt - cost_at_cost_opt   # ≈ 19.268
+</code></pre>
+  <div class="callout">⚠️ <strong>Accuracy ≠ business cost.</strong> $t\approx0.85$ minimizes misclassifications, but pushes many true ATOs below the threshold (FN, cost 900 each) to avoid flagging the much more numerous legitimate logins — raising average cost by ≈19.27 per sample versus the cost-optimal $t\approx0.39$. This is the core lesson of the thresholding assignment: optimize the metric you actually care about, not a proxy.</div>
+
+  <h4>Part 4 (4p) — 95% Hoeffding confidence interval on test cost</h4>
+  <p>The per-sample cost $C_i=\text{cost}(y_i,\hat y_i)\in\{0,80,150,900\}$ is a bounded random variable with range $C_{\max}-C_{\min}=900-0=900$. Hoeffding's inequality gives, for confidence $1-\delta$:</p>
+  <div class="math-block">
+    $$\left|\frac{1}{n}\sum_i C_i - \mathbb{E}[C]\right| \le (C_{\max}-C_{\min})\sqrt{\frac{\ln(2/\delta)}{2n}} \quad\text{w.p.}\ge1-\delta$$
+  </div>
+<pre><code class="language-python"># Part 4
+n = len(PROBLEM2_y_true_test)
+
+avg_cost_test = problem2_avg_cost(PROBLEM2_y_true_test, PROBLEM2_y_pred_proba_test, problem2_threshold)
+
+C_min, C_max = 0, 900
+delta = 0.05  # 95% confidence
+
+epsilon = (C_max - C_min) * np.sqrt(np.log(2 / delta) / (2 * n))
+
+problem2_lower_bound = avg_cost_test - epsilon   # ≈ 7.56
+problem2_upper_bound = avg_cost_test + epsilon   # ≈ 82.47
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>1. Why Hoeffding applies:</strong> Test samples are i.i.d., and <code>problem2_threshold</code> was chosen using only validation data — so the per-sample cost $C_i = \text{cost}(y_i, \hat y_i)$ on the test set is a fixed function of an i.i.d. draw, making $C_1,\dots,C_n$ i.i.d.</p>
+    <p><strong>2. Random variables &amp; support:</strong> $C_i$ = per-sample cost, taking values in $\{0, 80, 150, 900\}$ (TN, TP, FP, FN), so $C_i \in [0, 900]$.</p>
+    <p><strong>3. Cost range:</strong> $C_{\max}-C_{\min} = 900 - 0 = 900$, used in $\varepsilon = 900\sqrt{\ln(2/0.05)/(2n)}$, giving CI $\approx [7.56, 82.47]$.</p>
+  </div>
+  <div class="callout">💡 The interval is wide (≈75 units) because $C_{\max}-C_{\min}=900$ is dominated by the rare-but-extreme FN cost — Hoeffding is distribution-free and doesn't exploit the fact that most $C_i$ are actually $0$ or $80$. A tighter (but more assumption-laden) bound, e.g. Bernstein's inequality using the empirical variance of $C_i$, would shrink this considerably.</div>
+
+  <!-- ── Problem 3 ── -->
+  <h3 id="exam-2026-p3">Problem 3 — Courier Markov Chain <span class="pts">14p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>A courier company monitors its trucks across four states: <strong>Downtown (D)</strong>, <strong>Suburbs (S)</strong>, <strong>Countryside (C)</strong>, <strong>Maintenance (M)</strong>. The transition probabilities between states at each time step are:</p>
+    <table>
+      <tr><th>Current state</th><th>D</th><th>S</th><th>C</th><th>M</th></tr>
+      <tr><td>D</td><td>0.25</td><td>0.35</td><td>0.30</td><td>0.10</td></tr>
+      <tr><td>S</td><td>0.20</td><td>0.40</td><td>0.30</td><td>0.10</td></tr>
+      <tr><td>C</td><td>0.15</td><td>0.35</td><td>0.40</td><td>0.10</td></tr>
+      <tr><td>M</td><td>0.00</td><td>0.00</td><td>0.00</td><td>1.00</td></tr>
+    </table>
+    <div style="text-align:center; margin:14px 0;">
+      <img src="images/2026/MarkovCourier.png" alt="Courier Markov chain diagram (D, S, C, M)" style="max-width:420px; border:1px solid var(--border); border-radius:8px; display:inline-block;">
+      <p style="margin-top:4px; font-size:12.5px; color:var(--muted);">Courier Markov chain — M (Maintenance) is absorbing</p>
+    </div>
+    <ol>
+      <li><strong>[1p]</strong> If a truck starts in the <strong>Suburbs</strong>, what is the probability it eventually ends up in <strong>Maintenance</strong>?</li>
+      <li><strong>[2p]</strong> If a truck starts in <strong>Downtown</strong>, what is the probability it will be in <strong>Countryside</strong> after five time steps?</li>
+      <li><strong>[3p]</strong> Starting from <strong>Downtown</strong>, what is the expected number of steps before entering <strong>Maintenance</strong>? <em>(Simulation caps at 1.5p — use first-step analysis for full credit.)</em></li>
+      <li><strong>[2p]</strong> Is this Markov chain irreducible? Is it aperiodic?</li>
+      <li><strong>[2p]</strong> Does this chain have a stationary distribution? If yes, compute it; if not, explain why.</li>
+      <li><strong>[4p]</strong> Given the truck starts in <strong>Countryside</strong>, what is the probability that the <strong>last state visited</strong> before reaching <strong>Maintenance</strong> is <strong>Suburbs</strong>? <em>(Simulation caps at 2p — use first-step analysis for full credit.)</em></li>
+    </ol>
+  </div>
+
+  <div class="math-block">
+    $$P=\begin{pmatrix}0.25&0.35&0.30&0.10\\0.20&0.40&0.30&0.10\\0.15&0.35&0.40&0.10\\0.00&0.00&0.00&1.00\end{pmatrix}, \quad \text{order } (D,S,C,M)\to(0,1,2,3)$$
+  </div>
+  <p><strong>Key structure:</strong> $M$ is <em>absorbing</em> ($P_{MM}=1$, row $M$ has no way out). $D,S,C$ are <em>transient</em> — every transient state has positive probability $0.10$ of jumping straight to $M$. Split $P$ into blocks $P=\begin{pmatrix}Q&r\\0&1\end{pmatrix}$ where $Q$ is the $3\times3$ transient-to-transient block and $r=(0.10,0.10,0.10)^T$ is the transient-to-$M$ column. This block structure drives every part of this problem via the <strong>fundamental matrix</strong> $N=(I-Q)^{-1}$.</p>
+
+  <h4>Part 1 (1p) — Probability of eventually reaching Maintenance from Suburbs</h4>
+  <p>Absorption probabilities from each transient state solve $(I-Q)a=r$ (first-step analysis: $a_i = r_i + \sum_{j\in\{D,S,C\}}Q_{ij}a_j$).</p>
+<pre><code class="language-python"># Part 1
+import numpy as np
+
+transition_matrix = np.array([[0.25, 0.35, 0.30, 0.10],
+                               [0.20, 0.40, 0.30, 0.10],
+                               [0.15, 0.35, 0.40, 0.10],
+                               [0.00, 0.00, 0.00, 1.00]])
+
+Q = transition_matrix[:3, :3]
+r = transition_matrix[:3, 3]
+I = np.eye(3)
+
+a = np.linalg.solve(I - Q, r)   # absorption probs from D, S, C
+problem3_prob_maintenance_from_suburbs = a[1]
+print(problem3_prob_maintenance_from_suburbs)   # → 1.0
+</code></pre>
+  <div class="callout">💡 The answer is exactly $1.0$ (up to floating-point noise, e.g. $1.0000000000000004$) — and this is <em>correct</em>, not a bug. $M$ is the only absorbing state and every transient state has a strictly positive escape probability to $M$ each step, so absorption into $M$ is certain from any starting state: $a_D=a_S=a_C=1$.</div>
+
+  <h4>Part 2 (2p) — Probability of being in Countryside after 5 steps from Downtown</h4>
+  <p>The $n$-step transition probabilities are simply the entries of $P^n$: $\mathbb{P}(X_5=C\mid X_0=D) = (P^5)_{D,C}$.</p>
+<pre><code class="language-python"># Part 2
+problem3_prob_countryside_after_5_steps = np.linalg.matrix_power(transition_matrix, 5)[0, 2]
+print(problem3_prob_countryside_after_5_steps)   # → ≈ 0.22143
+</code></pre>
+  <div class="callout">⚠️ Don't confuse this with the <em>stationary</em> probability of being in $C$ (which is $0$, see Part 5) — after only 5 steps the chain has not yet converged, and $\approx22\%$ of trucks starting in $D$ are in $C$ at step 5. As the number of steps $\to\infty$, $(P^n)_{D,C}\to0$.</div>
+
+  <h4>Part 3 (3p) — Expected steps from Downtown until Maintenance</h4>
+  <p>Expected hitting times to the absorbing state solve $(I-Q)h=\mathbf{1}$ — first-step analysis: $h_i = 1 + \sum_{j\in\{D,S,C\}}Q_{ij}h_j$ (one step is "used up" regardless of where you land next, and $h_M=0$).</p>
+  <div class="math-block">
+    $$\text{Expected time from a state} = 1 + \sum_{\text{next states}}\big(\text{transition probability}\times\text{expected time from next state}\big)$$
+  </div>
+<pre><code class="language-python"># Part 3
+h = np.linalg.solve(I - Q, np.ones(3))   # expected hitting times from D, S, C
+problem3_expected_steps_downtown = h[0]
+print(problem3_expected_steps_downtown)   # → 10.0
+</code></pre>
+  <div class="callout">💡 All three transient states give $h=10.0$ exactly — a nice symmetry check: each transient state has the same $0.10$ escape probability to $M$ each step, so (regardless of how the remaining $0.90$ is redistributed among $D,S,C$) the expected wait for a "success" (escape) in a sequence of i.i.d. $\text{Bernoulli}(0.10)$ trials is $1/0.10=10$.</div>
+
+  <h4>Part 4 (2p) — Irreducibility &amp; aperiodicity</h4>
+  <p>A chain is <strong>irreducible</strong> iff all states communicate (every state reachable from every other). It is <strong>aperiodic</strong> if every state has period $\gcd\{n\ge1:(P^n)_{ii}>0\}=1$.</p>
+<pre><code class="language-python"># Part 4
+problem3_is_irreducible = False  # M is absorbing — it cannot reach D, S, or C,
+                                  # so the chain does not communicate in both directions
+problem3_is_aperiodic = True     # every transient state has a self-loop with positive
+                                  # probability (e.g. P[D,D]=0.25 > 0), so gcd of return
+                                  # times = 1 for all states
+</code></pre>
+  <div class="callout">💡 A chain can be <strong>aperiodic without being irreducible</strong> — these are independent properties. Here $\{D,S,C,M\}$ split into one transient class $\{D,S,C\}$ and one absorbing class $\{M\}$ (not irreducible), but every state individually has period 1 thanks to the diagonal entries $P_{DD},P_{SS},P_{CC},P_{MM}>0$ (aperiodic).</div>
+
+  <h4>Part 5 (2p) — Stationary distribution</h4>
+  <p>A stationary distribution $\pi$ solves $\pi P=\pi$, $\sum_i\pi_i=1$, $\pi_i\ge0$. Numerically, stack $\pi(P^T-I)=0$ (i.e. $(P^T-I)^T\pi^T=0$, written as $A\pi=0$ with $A=(P^T-I)$ — note the transpose) with the normalization row $\mathbf{1}^T\pi=1$, then solve the resulting (over-determined, rank-deficient) system with least squares.</p>
+<pre><code class="language-python"># Part 5
+P = transition_matrix
+A = np.vstack([P.T - np.eye(4), np.ones(4)])
+b = np.array([0, 0, 0, 0, 1])
+problem3_stationary_distribution = np.linalg.lstsq(A, b, rcond=None)[0]
+print(problem3_stationary_distribution)
+# → [-2.49e-16, 9.85e-16, 4.76e-16, 1.0]  (≈ [0, 0, 0, 1])
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p>Yes — a stationary distribution exists and equals π = (0, 0, 0, 1). Since M is absorbing and is reached with probability 1 from every other state (Part 1), all probability mass eventually concentrates at M, and π = δ_M is the unique fixed point of π = πP.</p>
+  </div>
+  <div class="callout">⚠️ <strong>On the $\pm10^{-16}$ entries:</strong> these are <em>floating-point rounding noise</em>, not a real result — <code>np.linalg.lstsq</code> solves a least-squares system numerically, and $10^{-16}$ is right at machine epsilon for float64 ($\approx2.2\times10^{-16}$). The mathematically exact answer is $\pi=(0,0,0,1)$ exactly; the printed vector is that answer plus rounding error from the linear-algebra solver. Always sanity-check numerically "zero" entries against the theoretical reasoning (here, Part 1's $a=1$ for every transient state) before reporting them as nonzero.</div>
+
+  <h4>Part 6 (4p) — P(last state before Maintenance = Suburbs | start in Countryside)</h4>
+  <p>Let $f_D,f_S,f_C$ be the probability that the <em>last transient state visited before hitting $M$</em> is $S$, starting from $D,S,C$ respectively. Condition on the next step: from state $X$, either you jump straight to $M$ now (in which case "last state visited" is $X$ itself — contributes only if $X=S$), or you move to transient state $Y$ and the answer is recursively $f_Y$:</p>
+  <div class="math-block">
+    $$f_X = \sum_{Y\in\{D,S,C\}} P_{X,Y}\,f_Y \;+\; P_{X,M}\cdot\mathbb{1}\{X=S\}$$
+  </div>
+  <p>This is a linear system $(I-Q)f=r_6$ where $r_6=(0,\,P_{S,M},\,0)^T=(0,0.10,0)^T$ — i.e. only row $S$ has a nonzero "direct contribution" term, since only starting (or passing through) $S$ and then jumping to $M$ counts as "last state = $S$".</p>
+<pre><code class="language-python"># Part 6
+r6 = np.array([0, 0.10, 0])  # only S contributes via its direct transition to M
+f = np.linalg.solve(I - Q, r6)
+problem3_prob_last_suburbs_from_countryside = f[2]
+print(problem3_prob_last_suburbs_from_countryside)   # → ≈ 0.36842
+</code></pre>
+  <div class="callout">💡 Sanity check via $f_S$: starting <em>in</em> $S$, $f_S\approx0.474 > f_C\approx0.368 > f_D$ — makes sense, since starting in $S$ gives an immediate chance ($P_{S,M}=0.10$) of "last state = $S$" on step 1 alone, on top of all the ways to revisit $S$ before absorption. $f_D=f_C\approx0.368$ because from $D$ or $C$, $S$ must first be reached before the eventual jump to $M$ from $S$.</div>
+
 
   <!-- ══ ASSIGNMENT 1 ══ -->
   <h2 id="assign-1">✅ Assignment 1 Solutions</h2>
