@@ -169,6 +169,10 @@
     <a href="#exam-2023-p1" style="padding-left:28px; font-size:12.5px;">↳ P1 Markov Chain</a>
     <a href="#exam-2023-p2" style="padding-left:28px; font-size:12.5px;">↳ P2 Linear Regression</a>
     <a href="#exam-2023-p3" style="padding-left:28px; font-size:12.5px;">↳ P3 Poisson Regression</a>
+    <a href="#exam-2024">2024 Exam</a>
+    <a href="#exam-2024-p1" style="padding-left:28px; font-size:12.5px;">↳ P1 Rejection &amp; Inversion Sampling</a>
+    <a href="#exam-2024-p2" style="padding-left:28px; font-size:12.5px;">↳ P2 Proportional Spam Classifier</a>
+    <a href="#exam-2024-p3" style="padding-left:28px; font-size:12.5px;">↳ P3 Markov Chains</a>
 
     <div class="section-header">Assignments</div>
     <a href="#assign-1">Assignment 1</a>
@@ -198,6 +202,7 @@
       <p>Clean, commented solutions built problem by problem.</p>
       <span class="tag tag-green">2022 P1–P6 done</span>
       <span class="tag tag-green">2023 P1–P3 done</span>
+      <span class="tag tag-green">2024 P1–P3 done</span>
     </div>
   </div>
 
@@ -1109,6 +1114,398 @@ problem3_metric = mean_absolute_error(problem3_y_test, problem3_predictions)
     <p>Since <code>ofp</code> is a count (Poisson-distributed), Mean Absolute Error (MAE) is a natural, interpretable choice: it tells us the average number of visits the prediction is off by. The model achieves MAE ≈ 4.28 visits.</p>
     <p><strong>Comparison with a naive model</strong></p>
     <p>A naive baseline that always predicts the training mean (<code>y_train.mean() ≈ 5.72</code>) achieves MAE ≈ 4.66. The Poisson model improves on this naive baseline (4.28 vs 4.66, about an 8% reduction), but the improvement is modest — <code>ofp</code> has very high variance (many patients with 0 visits, a few with very many), so patient characteristics alone explain only part of the variation in visit counts.</p>
+  </div>
+
+  <!-- ══ 2024 EXAM ══ -->
+  <h2 id="exam-2024">✅ 2024 Exam Solutions</h2>
+
+  <!-- ── Problem 1 ── -->
+  <h3 id="exam-2024-p1">Problem 1 — Rejection &amp; Inversion Sampling <span class="pts">14p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Do rejection sampling from complicated distributions, then use the samples to compute integrals via Monte Carlo integration. Keep in mind that choosing a good sampling distribution is often key to avoid too much rejection.</p>
+    <ol>
+      <li><strong>[4p]</strong> Fill in <code>problem1_inversion</code> to produce samples from $F(x)=\begin{cases}0,&x\le0\\\frac{e^{x^2}-1}{e-1},&0 < x < 1\\1,&x\ge1\end{cases}$ using rejection sampling.</li>
+      <li><strong>[2p]</strong> Produce 100000 samples in <code>problem1_samples</code> and plot the histogram against the true density. <em>(There is a <code>@timeout(10)</code> decorator — generating 100000 samples must take &lt;10s.)</em></li>
+      <li><strong>[2p]</strong> Use <code>problem1_samples</code> to approximate $\int_0^1 \sin(x)\,\frac{2e^{x^2}x}{e-1}\,dx$ and store the result in <code>problem1_integral</code>.</li>
+      <li><strong>[2p]</strong> Use Hoeffding's inequality to produce a 95% confidence interval for the integral, stored as a tuple in <code>problem1_interval</code>.</li>
+      <li><strong>[4p]</strong> Fill in <code>problem1_inversion_2</code> to produce samples from $F(x)=\begin{cases}0,&x\le0\\20xe^{20-1/x},&0 < x < \frac{1}{20}\\1,&x\ge\frac{1}{20}\end{cases}$ using rejection sampling. <em>Hint: the wrong proposal rejects ≥9/10 times — the right one gives 100000 samples in &lt;2s.</em></li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (4p) — Sampling from $F(x)=\frac{e^{x^2}-1}{e-1}$</h4>
+  <p>For $0 < x < 1$, $F$ is a strictly increasing, continuous CDF mapping $(0,1)\to(0,1)$ — it is directly invertible, so the simplest exact sampler is <strong>inverse-transform sampling</strong> (a "zero-rejection" special case of rejection sampling). Set $u=F(x)$ and solve for $x$:</p>
+  <div class="math-block">
+    $$u(e-1)=e^{x^2}-1 \;\Longrightarrow\; x^2=\ln\big(1+u(e-1)\big) \;\Longrightarrow\; x=\sqrt{\ln\big(1+u(e-1)\big)}$$
+  </div>
+  <p>Since $U\sim\text{Uniform}(0,1)$, $X=\sqrt{\ln(1+U(e-1))}$ has CDF $F$.</p>
+<pre><code class="language-python">import numpy as np
+from Utils import timeout
+
+@timeout(10)
+def problem1_inversion(n_samples=1):
+    u = np.random.rand(n_samples)
+    x = np.sqrt(np.log(1.0 + u * (np.e - 1.0)))
+    return x
+</code></pre>
+  <div class="callout">⚠️ <strong>Critical decorator gotcha:</strong> <code>timeout</code> is a decorator <em>factory</em> — its signature is <code>timeout(seconds=10, error_message=...)</code>. Writing the bare <code>@timeout</code> (no parentheses) binds the function itself to the <code>seconds</code> parameter, so <code>problem1_inversion</code> becomes the inner wrapper applied to the wrong thing, and calling it returns a <code>function</code> object instead of an <code>np.ndarray</code> (<code>TypeError: object of type 'function' has no len()</code>). Always write <code>@timeout(10)</code>.</div>
+
+  <h4>Part 2 (2p) — 100000 samples + histogram vs. true density</h4>
+  <p>The density is $f(x)=F'(x)=\dfrac{2xe^{x^2}}{e-1}$ for $x\in(0,1)$.</p>
+<pre><code class="language-python">problem1_samples = problem1_inversion(100000)
+
+import matplotlib.pyplot as plt
+xx = np.linspace(0, 1, 500)
+plt.hist(problem1_samples, bins=50, density=True, alpha=0.6, label="samples")
+plt.plot(xx, 2*xx*np.exp(xx**2)/(np.e-1), 'r-', label="true density")
+plt.legend(); plt.show()
+</code></pre>
+  <div class="callout">💡 Because Part 1 is inverse-transform (not accept/reject), generation is <em>vectorized</em> and embarrassingly fast (&lt;2ms for 100000 samples) — the 10s timeout is trivially satisfied. The histogram should track the curve $2xe^{x^2}/(e-1)$ almost exactly.</div>
+
+  <h4>Part 3 (2p) — Monte Carlo integral</h4>
+  <p>Recognize the integral as $E_{X\sim F}[\sin(X)]$, since $f(x)=\frac{2xe^{x^2}}{e-1}$ is exactly the density we sampled from:</p>
+  <div class="math-block">
+    $$\int_0^1 \sin(x)\,\frac{2e^{x^2}x}{e-1}\,dx = \int_0^1\sin(x)f(x)\,dx = E_{X\sim F}[\sin(X)] \approx \frac{1}{n}\sum_{i=1}^n \sin(x_i)$$
+  </div>
+<pre><code class="language-python">problem1_integral = float(np.mean(np.sin(problem1_samples)))
+</code></pre>
+
+  <h4>Part 4 (2p) — 95% Hoeffding interval</h4>
+  <p>$g(x)=\sin(x)$ for $x\in[0,1]$ takes values in $[0,1]$ (since $\sin$ is increasing on $[0,1]$ and $\sin(0)=0,\ \sin(1)\approx0.841\le1$), so $g(X)$ is a bounded i.i.d. sample with range $b-a=1$. Hoeffding's inequality gives, for confidence $1-\delta$:</p>
+  <div class="math-block">
+    $$\left|\frac{1}{n}\sum_i g(x_i) - E[g(X)]\right| \le (b-a)\sqrt{\frac{\ln(2/\delta)}{2n}} \quad\text{w.p. } \ge 1-\delta$$
+  </div>
+<pre><code class="language-python"># Part 4
+n = len(problem1_samples)
+delta = 0.05
+eps = (1.0 - 0.0) * np.sqrt(np.log(2.0/delta) / (2.0*n))
+problem1_interval = [problem1_integral - eps, problem1_integral + eps]
+</code></pre>
+  <div class="callout">💡 Using $b-a=1$ (the trivial bound from $x\in[0,1]\Rightarrow\sin(x)\in[0,1]$) is simpler and still valid, even though the tighter bound $\sin(1)\approx0.841$ would give a slightly narrower interval. With $n=100000$, $\varepsilon\approx\sqrt{\ln(40)/200000}\approx0.0043$ either way — the interval is tiny.</div>
+
+  <h4>Part 5 (4p) — Sampling from $F(x)=20xe^{20-1/x}$, $0 < x < \frac{1}{20}$</h4>
+  <p>First find the density $f(x)=F'(x)$ by the product rule:</p>
+  <div class="math-block">
+    $$f(x) = \frac{d}{dx}\left[20x\,e^{20-1/x}\right] = 20e^{20-1/x} + 20x\,e^{20-1/x}\cdot\frac{1}{x^2} = 20e^{20-1/x}\left(1+\frac{1}{x}\right)$$
+  </div>
+  <p><strong>Key trick — substitute $Y=1/X$.</strong> Sampling directly from $f(x)$ on $(0,\frac{1}{20})$ is awkward because the density is sharply peaked near $0$. But $X\in(0,\frac{1}{20}) \iff Y=1/X\in(20,\infty)$, and by the change-of-variables formula ($x=1/y$, $|dx/dy|=1/y^2$, and $20-1/x=20-y$, $1+1/x=1+y$):</p>
+  <div class="math-block">
+    $$f_Y(y) = f_X(1/y)\cdot\frac{1}{y^2} = 20e^{20-y}(1+y)\cdot\frac{1}{y^2} = e^{20-y}\cdot 20\left(\frac{1}{y}+\frac{1}{y^2}\right), \quad y\ge20$$
+  </div>
+  <p>Propose $Y$ from a <strong>shifted Exponential(1)</strong>: $g(y)=e^{-(y-20)}=e^{20-y}$ for $y\ge20$ (i.e. <code>Y = 20 + Exponential(1)</code>). Then:</p>
+  <div class="math-block">
+    $$\frac{f_Y(y)}{g(y)} = 20\left(\frac{1}{y}+\frac{1}{y^2}\right) \le 20\left(\frac{1}{20}+\frac{1}{400}\right) = 1.05 =: M \quad\text{for all } y\ge20$$
+  </div>
+  <p>so accept $Y=y$ with probability $\dfrac{f_Y(y)}{M\cdot g(y)} = \dfrac{20(1/y+1/y^2)}{M}$, and return $X=1/Y$.</p>
+<pre><code class="language-python"># Part 5
+def problem1_inversion_2(n_samples=1):
+    c = 1.05  # envelope constant: 20*(1/y+1/y^2) <= c for all y>=20
+    out = np.empty(n_samples, dtype=float)
+    filled = 0
+    while filled < n_samples:
+        need = n_samples - filled
+        batch = int(need / 0.9) + 50          # oversample slightly
+        y = 20.0 + np.random.exponential(1.0, size=batch)
+        accept_prob = 20.0*(1.0/y + 1.0/y**2) / c
+        accepted = y[np.random.rand(batch) < accept_prob]
+        take = min(len(accepted), need)
+        out[filled:filled+take] = 1.0 / accepted[:take]
+        filled += take
+    return out
+</code></pre>
+  <div class="callout">⚠️ The "obvious" proposal — sampling $X$ directly from, say, $\text{Uniform}(0,\frac{1}{20})$ or $\text{Exponential}$ on $(0,\frac{1}{20})$ — has an acceptance rate near $\le10\%$ because $f_X$ is extremely concentrated near $x=0$ (i.e. $y\to\infty$), exactly as the hint warns. The $Y=1/X$ substitution turns the "spike near 0" into a well-behaved exponential-like tail, where the envelope ratio $20(1/y+1/y^2)/M \approx 1$ for $y$ near 20 — acceptance rate ≈ 95%, easily hitting 100000 samples in &lt;2s.</div>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Choice of sampling distribution (Part 5)</strong></p>
+    <p>Direct rejection sampling for $X$ on $(0,1/20)$ is inefficient because $f_X(x)=20e^{20-1/x}(1+1/x)$ is extremely concentrated near $x=0$ — most mass of a uniform or exponential proposal on $(0,1/20)$ would fall where $f_X$ is tiny, giving a rejection rate &gt;90%, as hinted.</p>
+    <p>Substituting $Y=1/X$ maps $(0,1/20)\to(20,\infty)$ and gives $f_Y(y)=20e^{20-y}(1/y+1/y^2)$, which is approximately a shifted $\text{Exponential}(1)$ on $[20,\infty)$ (the $e^{20-y}$ factor dominates). Using $g(y)=e^{20-y}$ as the proposal and envelope constant $M=1.05$ (the supremum of $20(1/y+1/y^2)$ over $y\ge20$, attained at $y=20$) gives an acceptance probability close to $1/1.05\approx95\%$ — so 100000 samples require only ≈105000 proposals, comfortably under 2 seconds.</p>
+  </div>
+
+  <!-- ── Problem 2 ── -->
+  <h3 id="exam-2024-p2">Problem 2 — Proportional Spam Classifier <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Build a <strong>proportional model</strong> $\mathbb{P}(Y=1\mid X)=G(\beta_0+\beta\cdot X)$, where $G$ is the logistic function, for the spam vs. not-spam data. Features are the presence/absence of the words "free", "prize", "win" — $X_1,X_2,X_3\in\{0,1\}$.</p>
+    <ol>
+      <li><strong>[2p]</strong> Load <code>data/spam.csv</code>; build <code>problem2_X</code> (shape <code>(n,3)</code>, presence of free/prize/win) and <code>problem2_Y</code> (shape <code>(n,)</code>, 1 = spam). Split 40% train / 20% calibration / 40% test.</li>
+      <li><strong>[4p]</strong> Derive the logistic-regression loss from the lecture notes and implement it in <code>ProportionalSpam.loss</code>. Check against the <code>Test</code> cell.</li>
+      <li><strong>[4p]</strong> Train <code>problem2_ps</code> on the training data. Build <code>problem2_X_pred</code> (shape <code>(n,1)</code>) from predictions on the calibration set, and fit a <code>sklearn.tree.DecisionTreeRegressor</code> calibrator, <code>problem2_calibrator</code>.</li>
+      <li><strong>[3p]</strong> Use <code>problem2_ps</code> + <code>problem2_calibrator</code> to get <code>problem2_final_predictions</code> on the test set. Compute the 0-1 test loss <code>problem2_01_loss</code> and a 99% confidence interval <code>problem2_interval</code> (tuple).</li>
+    </ol>
+  </div>
+
+  <h4>Part 1 (2p) — Load data, build features, 40/20/40 split</h4>
+  <p>Each feature is a binary indicator for whether the word appears (as a whole word, case-insensitive) in the message body. The split uses a fixed-seed permutation so it's reproducible.</p>
+<pre><code class="language-python">import pandas as pd
+import numpy as np
+
+df = pd.read_csv("data/spam.csv", encoding="ISO-8859-1", usecols=[0, 1])
+df = df.dropna(axis=1, how="all")
+
+X1 = df["v2"].str.contains(r"\bfree\b", case=False, na=False).astype(int).to_numpy()
+X2 = df["v2"].str.contains(r"\bprize\b", case=False, na=False).astype(int).to_numpy()
+X3 = df["v2"].str.contains(r"\bwin\b", case=False, na=False).astype(int).to_numpy()
+problem2_X = np.column_stack((X1, X2, X3))
+problem2_Y = (df["v1"] == "spam").astype(int).to_numpy()
+
+n = problem2_X.shape[0]
+rng = np.random.default_rng(seed=0)
+perm = rng.permutation(n)
+train_end = int(0.4 * n)
+calib_end = int(0.6 * n)
+train_idx, calib_idx, test_idx = perm[:train_end], perm[train_end:calib_end], perm[calib_end:]
+
+problem2_X_train, problem2_X_calib, problem2_X_test = problem2_X[train_idx], problem2_X[calib_idx], problem2_X[test_idx]
+problem2_Y_train, problem2_Y_calib, problem2_Y_test = problem2_Y[train_idx], problem2_Y[calib_idx], problem2_Y[test_idx]
+</code></pre>
+  <div class="callout">⚠️ <code>\b...\b</code> word-boundary regex matters: without it, <code>"win"</code> would match inside <code>"winner"</code> or <code>"winning"</code>, conflating a different (much more common) signal with the literal word "win".</div>
+
+  <h4>Part 2 (4p) — Derive &amp; implement the logistic loss</h4>
+  <p>With $G(z)=\dfrac{1}{1+e^{-z}}$ and $z_i=\beta_0+\beta\cdot X_i$, each $Y_i\in\{0,1\}$ is modeled as $Y_i\mid X_i \sim \text{Bernoulli}(G(z_i))$, i.e. $\mathbb{P}(Y_i=1\mid X_i)=G(z_i)$ and $\mathbb{P}(Y_i=0\mid X_i)=1-G(z_i)$. The likelihood of the whole dataset is:</p>
+  <div class="math-block">
+    $$\mathcal{L}(\beta_0,\beta) = \prod_{i=1}^n G(z_i)^{Y_i}\big(1-G(z_i)\big)^{1-Y_i}$$
+  </div>
+  <p>Taking $-\log$ and averaging gives the (mean) negative log-likelihood — the loss to <em>minimize</em>:</p>
+  <div class="math-block">
+    $$L(\beta_0,\beta) = -\frac{1}{n}\sum_{i=1}^n\Big[Y_i\log G(z_i) + (1-Y_i)\log\big(1-G(z_i)\big)\Big]$$
+  </div>
+<pre><code class="language-python"># Part 2
+class ProportionalSpam(object):
+    def __init__(self):
+        self.coeffs = None
+        self.result = None
+
+    def loss(self, X, Y, coeffs):
+        z = coeffs[0] + np.dot(X, coeffs[1:])      # beta_0 + X . beta
+        G = 1 / (1 + np.exp(-z))                    # logistic function
+        G = np.clip(G, 1e-12, 1 - 1e-12)            # avoid log(0)
+        return -np.mean(Y*np.log(G) + (1-Y)*np.log(1-G))
+
+    def fit(self, X, Y):
+        from scipy import optimize
+        opt_loss = lambda coeffs: self.loss(X, Y, coeffs)
+        initial_arguments = np.zeros(shape=X.shape[1]+1)
+        self.result = optimize.minimize(opt_loss, initial_arguments, method='cg')
+        self.coeffs = self.result.x
+
+    def predict(self, X):
+        if self.coeffs is not None:
+            G = lambda x: np.exp(x)/(1+np.exp(x))
+            return np.round(10*G(np.dot(X, self.coeffs[1:]) + self.coeffs[0]))/10
+</code></pre>
+  <div class="callout">⚠️ <code>np.clip(G, 1e-12, 1-1e-12)</code> is essential: for extreme $z$, $G(z)\to0$ or $1$ exactly in floating point, and $\log(0)=-\infty$ would make the loss <code>nan</code>/<code>inf</code> — clipping keeps the optimizer well-behaved without materially changing the loss value.</div>
+  <div class="callout">💡 <code>predict</code> rounds $G(z)$ to the nearest $0.1$ — this coarsens the raw probability into 11 buckets $\{0,0.1,\dots,1.0\}$, which is exactly what makes the calibration step (Part 3) tractable: the <code>DecisionTreeRegressor</code> only needs to learn a correction <em>per bucket</em>, not a continuous function.</div>
+
+  <h4>Part 3 (4p) — Train + calibrate</h4>
+  <p>The trained <code>ProportionalSpam</code> model outputs coarse, rounded probabilities — these are not necessarily <em>calibrated</em> (e.g. "0.3" doesn't necessarily mean "30% of such emails are spam"). The fix: predict on the held-out <strong>calibration set</strong>, then fit a regressor mapping <code>raw prediction → true label</code>, learning the empirical spam-rate within each bucket.</p>
+<pre><code class="language-python"># Part 3
+from sklearn.tree import DecisionTreeRegressor
+
+problem2_ps = ProportionalSpam()
+problem2_ps.fit(problem2_X_train, problem2_Y_train)
+
+problem2_X_pred = problem2_ps.predict(problem2_X_calib).reshape(-1, 1)
+
+problem2_calibrator = DecisionTreeRegressor(max_depth=3, random_state=0)
+problem2_calibrator.fit(problem2_X_pred, problem2_Y_calib)
+</code></pre>
+  <div class="callout">💡 <code>max_depth=3</code> on a 1-D input with ≤11 distinct values (the rounded buckets) is plenty — it effectively learns a lookup table "bucket value → empirical $\mathbb{P}(Y=1\mid\text{bucket})$" from the calibration data, a simple form of <strong>histogram/Platt-style recalibration</strong>.</div>
+
+  <h4>Part 4 (3p) — Final predictions, 0-1 loss, 99% interval</h4>
+  <p>Chain the two models: raw <code>problem2_ps</code> prediction on the test set → calibrator → calibrated probability. Then apply the <strong>Bayes classifier</strong> (threshold at $0.5$) to get a hard decision, and compute the 0-1 loss with a Hoeffding interval (bounded loss $\in\{0,1\}$, so $b-a=1$).</p>
+<pre><code class="language-python"># Part 4
+from Utils import epsilon_bounded
+
+problem2_test_raw = problem2_ps.predict(problem2_X_test).reshape(-1, 1)
+problem2_final_predictions = problem2_calibrator.predict(problem2_test_raw)
+
+decisions = (problem2_final_predictions >= 0.5).astype(int)
+problem2_01_loss = float(np.mean(decisions != problem2_Y_test))
+# → ≈ 0.0996
+
+n_test = len(problem2_Y_test)
+eps = epsilon_bounded(n_test, 1, 0.01)   # Hoeffding, |loss|<=1, alpha=0.01 → 99%
+problem2_interval = (max(problem2_01_loss - eps, 0), min(problem2_01_loss + eps, 1))
+# → ≈ (0.065, 0.134)
+</code></pre>
+  <div class="callout">💡 <code>epsilon_bounded(n, b, alpha)</code> returns the Hoeffding half-width $b\sqrt{\frac{1}{2n}\ln\frac{2}{\alpha}}$ for a $[0,b]$-bounded loss at confidence $1-\alpha$. Here $\alpha=0.01$ gives a <strong>99%</strong> interval, wider than the 95% interval would be for the same $n$.</div>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Derivation of the loss (Part 2)</strong></p>
+    <p>Each label $Y_i\in\{0,1\}$ is Bernoulli with success probability $G(\beta_0+\beta\cdot X_i)$. The likelihood of the dataset is $\prod_i G(z_i)^{Y_i}(1-G(z_i))^{1-Y_i}$ with $z_i=\beta_0+\beta\cdot X_i$. Taking the negative log and averaging over $n$ gives the loss to minimize: $L=-\frac{1}{n}\sum_i\big[Y_i\log G(z_i)+(1-Y_i)\log(1-G(z_i))\big]$, implemented directly with $G(z)=1/(1+e^{-z})$ and a small clip to avoid $\log 0$.</p>
+    <p><strong>Why calibrate (Part 3)?</strong></p>
+    <p>The <code>predict</code> method rounds $G(z)$ to the nearest tenth — a deliberate coarsening that turns the continuous logistic output into a small number of discrete "scores". A <code>DecisionTreeRegressor(max_depth=3)</code> trained on (rounded score → true label) on a held-out calibration set learns the empirical spam rate within each score bucket, correcting any systematic over/under-confidence of the raw model before it's evaluated on the test set.</p>
+  </div>
+
+  <!-- ── Problem 3 ── -->
+  <h3 id="exam-2024-p3">Problem 3 — Markov Chains <span class="pts">13p</span> <span class="done">✓ complete</span></h3>
+
+  <div class="problem-statement">
+    <div class="problem-statement-label">📋 Original Problem Statement</div>
+    <p>Consider the following four Markov chains. Answer each of the 5 questions below for <strong>all four chains</strong>.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:16px; margin:14px 0;">
+      <div style="text-align:center;">
+        <img src="images/2024/MarkovA.png" alt="Markov chain A diagram" style="max-width:300px; border:1px solid var(--border); border-radius:8px; display:block;">
+        <p style="margin-top:4px; font-size:12.5px; color:var(--muted);">Markov chain A</p>
+      </div>
+      <div style="text-align:center;">
+        <img src="images/2024/MarkovB.png" alt="Markov chain B diagram" style="max-width:300px; border:1px solid var(--border); border-radius:8px; display:block;">
+        <p style="margin-top:4px; font-size:12.5px; color:var(--muted);">Markov chain B</p>
+      </div>
+      <div style="text-align:center;">
+        <img src="images/2024/MarkovC.png" alt="Markov chain C diagram" style="max-width:300px; border:1px solid var(--border); border-radius:8px; display:block;">
+        <p style="margin-top:4px; font-size:12.5px; color:var(--muted);">Markov chain C</p>
+      </div>
+      <div style="text-align:center;">
+        <img src="images/2024/MarkovD.png" alt="Markov chain D diagram" style="max-width:300px; border:1px solid var(--border); border-radius:8px; display:block;">
+        <p style="margin-top:4px; font-size:12.5px; color:var(--muted);">Markov chain D</p>
+      </div>
+    </div>
+    <ol>
+      <li><strong>[2p]</strong> What is the transition matrix?</li>
+      <li><strong>[2p]</strong> Is the Markov chain irreducible?</li>
+      <li><strong>[3p]</strong> Is the Markov chain aperiodic? What is the period for each state?</li>
+      <li><strong>[3p]</strong> Does the Markov chain have a stationary distribution, and if so, what is it?</li>
+      <li><strong>[3p]</strong> Is the Markov chain reversible?</li>
+    </ol>
+  </div>
+
+  <p>State order $(A,B,C,D[,E])\to$ indices $(0,1,2,3[,4])$ for all four chains.</p>
+
+  <h4>Part 1 (2p) — Transition matrices</h4>
+
+  <img src="images/2024/MarkovA.png" alt="Markov chain A diagram" style="max-width:320px; border:1px solid var(--border); border-radius:8px; display:block; margin: 10px 0;">
+  <div class="math-block">
+    $$\textbf{Chain A} - P_A=\begin{pmatrix}0.8&0.2&0&0\\0.6&0.2&0.2&0\\0&0.4&0&0.6\\0&0&0.8&0.2\end{pmatrix}$$
+  </div>
+
+  <img src="images/2024/MarkovB.png" alt="Markov chain B diagram" style="max-width:320px; border:1px solid var(--border); border-radius:8px; display:block; margin: 10px 0;">
+  <div class="math-block">
+    $$\textbf{Chain B} - P_B=\begin{pmatrix}0&0.2&0&0.8\\0&0&1&0\\0&1&0&0\\0.5&0&0.5&0\end{pmatrix}$$
+  </div>
+
+  <img src="images/2024/MarkovC.png" alt="Markov chain C diagram" style="max-width:320px; border:1px solid var(--border); border-radius:8px; display:block; margin: 10px 0;">
+  <div class="math-block">
+    $$\textbf{Chain C} - P_C=\begin{pmatrix}0.2&0.3&0&0&0.5\\0.2&0.2&0.6&0&0\\0&0.4&0&0.6&0\\0&0&0&0.6&0.4\\0&0&0&0.4&0.6\end{pmatrix}$$
+  </div>
+
+  <img src="images/2024/MarkovD.png" alt="Markov chain D diagram" style="max-width:320px; border:1px solid var(--border); border-radius:8px; display:block; margin: 10px 0;">
+  <div class="math-block">
+    $$\textbf{Chain D} - P_D=\begin{pmatrix}0.8&0.2&0&0\\0.6&0.2&0.2&0\\0&0.4&0&0.6\\0.1&0&0.7&0.2\end{pmatrix}$$
+  </div>
+
+<pre><code class="language-python"># PART 1 — transition matrices, rows must sum to 1
+import numpy as np
+
+problem3_A = np.array([
+    [0.8, 0.2, 0.0, 0.0],
+    [0.6, 0.2, 0.2, 0.0],
+    [0.0, 0.4, 0.0, 0.6],
+    [0.0, 0.0, 0.8, 0.2]
+])
+problem3_B = np.array([
+    [0.0, 0.2, 0.0, 0.8],
+    [0.0, 0.0, 1.0, 0.0],
+    [0.0, 1.0, 0.0, 0.0],
+    [0.5, 0.0, 0.5, 0.0]
+])
+problem3_C = np.array([
+    [0.2, 0.3, 0.0, 0.0, 0.5],
+    [0.2, 0.2, 0.6, 0.0, 0.0],
+    [0.0, 0.4, 0.0, 0.6, 0.0],
+    [0.0, 0.0, 0.0, 0.6, 0.4],
+    [0.0, 0.0, 0.0, 0.4, 0.6]
+])
+problem3_D = np.array([
+    [0.8, 0.2, 0.0, 0.0],
+    [0.6, 0.2, 0.2, 0.0],
+    [0.0, 0.4, 0.0, 0.6],
+    [0.1, 0.0, 0.7, 0.2]
+])
+</code></pre>
+
+  <h4>Part 2 (2p) — Irreducibility</h4>
+  <p>A chain is <strong>irreducible</strong> iff every state communicates with every other state — i.e. for all $i,j$ there exist $m,n$ with $(P^m)_{ij}>0$ and $(P^n)_{ji}>0$, so the chain has a single communicating class.</p>
+<pre><code class="language-python"># PART 2
+problem3_A_irreducible = True
+problem3_B_irreducible = False
+problem3_C_irreducible = False
+problem3_D_irreducible = True
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Chain A — irreducible.</strong> The support graph $A\leftrightarrow B\leftrightarrow C\leftrightarrow D$ (with $D\to C\to B\to A$ all positive) means every state can reach every other state, e.g. $A\to B\to C\to D$ and $D\to C\to B\to A$. One communicating class.</p>
+    <p><strong>Chain B — not irreducible.</strong> From $A$ or $D$ one can reach $B$ and $C$ (e.g. $A\to D\to A\to B$... actually $A\to B$, $D\to C$), but once in $\{B,C\}$ the chain stays there forever ($P_{BC}=1,P_{CB}=1$) — it can never return to $A$ or $D$. So $\{B,C\}$ is a closed (absorbing) communicating class and $\{A,D\}$ are transient: two classes, not irreducible.</p>
+    <p><strong>Chain C — not irreducible.</strong> Similarly $\{D,E\}$ forms a closed class ($P_{DD},P_{DE},P_{ED},P_{EE}>0$, no edge leaving $\{D,E\}$), while $A,B,C$ can reach $D/E$ but not vice versa — $A,B,C$ are transient. Not irreducible.</p>
+    <p><strong>Chain D — irreducible.</strong> Identical cycle structure to Chain A, but now $D\to A$ with probability $0.1$ closes a direct path back, so combined with $D\to C\to B\to A$ and $A\to B\to C\to D$, every state communicates with every other. One communicating class.</p>
+  </div>
+
+  <h4>Part 3 (3p) — Aperiodicity &amp; periods</h4>
+  <p>The <strong>period</strong> of state $i$ is $d(i)=\gcd\{n\ge1 : (P^n)_{ii}>0\}$ — the gcd of all return-time lengths. A chain is <strong>aperiodic</strong> if $d(i)=1$ for all $i$. Periods are defined per-state even when the chain is reducible (transient states still have a well-defined period within their class).</p>
+<pre><code class="language-python"># PART 3
+problem3_A_is_aperiodic = True
+problem3_B_is_aperiodic = False
+problem3_C_is_aperiodic = True
+problem3_D_is_aperiodic = True
+
+problem3_A_periods = np.array([1, 1, 1, 1])
+problem3_B_periods = np.array([2, 2, 2, 2])
+problem3_C_periods = np.array([1, 1, 1, 1, 1])
+problem3_D_periods = np.array([1, 1, 1, 1])
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Chain A — period 1 for all states.</strong> $P_{AA}=0.8>0$ gives a self-loop (return length 1), so $d(A)=1$; since A is irreducible, all states share the same period, so $d(B)=d(C)=d(D)=1$.</p>
+    <p><strong>Chain B — period 2 for all states.</strong> The only transitions out of $\{B,C\}$ are $B\to C$ and $C\to B$ (length-2 cycle), and $\{A,D\}$ only connects via $A\to D, D\to A$ (also even cycles back to themselves, e.g. $A\to D\to A$, length 2). Every return path has even length, and $\gcd$ of all of them is 2, so $d(i)=2$ for every state — the chain is <strong>not aperiodic</strong>.</p>
+    <p><strong>Chain C — period 1 for all states.</strong> $D$ and $E$ both have self-loops ($P_{DD}=0.6,P_{EE}=0.6$), so $d(D)=d(E)=1$. For $C$ (transient, in $\{A,B,C\}$): return paths include $C\to B\to C$ (length 2, since $P_{CB},P_{BC}>0$) and $C\to B\to B\to C$ (length 3, using $B$'s self-loop $P_{BB}=0.2$) — $\gcd(2,3)=1$, so $d(C)=1$. $A$ and $B$ also have self-loops ($P_{AA}=0.2,P_{BB}=0.2$) giving $d(A)=d(B)=1$ directly.</p>
+    <p><strong>Chain D — period 1 for all states.</strong> Same self-loop argument as Chain A ($P_{AA}=0.8>0$), and D is irreducible, so all states have period 1.</p>
+  </div>
+
+  <h4>Part 4 (3p) — Stationary distributions</h4>
+  <p>A stationary distribution $\pi$ satisfies $\pi P=\pi$, $\sum_i\pi_i=1$, $\pi_i\ge0$. For a finite chain a stationary distribution always exists; if the chain is reducible, any stationary distribution must assign $\pi_i=0$ to all <strong>transient</strong> states, and is a (possibly non-unique, here unique) mixture over the recurrent closed classes.</p>
+<pre><code class="language-python"># PART 4
+problem3_A_has_stationary = True
+problem3_B_has_stationary = True
+problem3_C_has_stationary = True
+problem3_D_has_stationary = True
+
+problem3_A_stationary_dist = np.array([8/13, 8/39, 4/39, 1/13])
+problem3_B_stationary_dist = np.array([0.0, 0.5, 0.5, 0.0])
+problem3_C_stationary_dist = np.array([0.0, 0.0, 0.0, 0.5, 0.5])
+problem3_D_stationary_dist = np.array([20/93*3, 19/93, 8/93, 2/31])  # = [20/31, 19/93, 8/93, 2/31]
+</code></pre>
+  <div class="math-block">
+    $$\pi_A=\left(\tfrac{8}{13},\tfrac{8}{39},\tfrac{4}{39},\tfrac{1}{13}\right)\approx(0.615,0.205,0.103,0.077) \qquad \pi_D=\left(\tfrac{20}{31},\tfrac{19}{93},\tfrac{8}{93},\tfrac{2}{31}\right)\approx(0.645,0.204,0.086,0.065)$$
+  </div>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Chains A and D — unique $\pi$, all states recurrent.</strong> Both are finite, irreducible chains, so a unique stationary distribution exists, found by solving $\pi(P-I)=0,\ \sum\pi_i=1$ (replace one redundant row of $P^\top-I$ with the normalization constraint). $\pi_A=(8/13,8/39,4/39,1/13)$, $\pi_D=(20/31,19/93,8/93,2/31)$.</p>
+    <p><strong>Chain B — $\pi=(0,0.5,0.5,0)$.</strong> $\{A,D\}$ are transient, so $\pi_A=\pi_D=0$. Restricted to the recurrent class $\{B,C\}$, the sub-chain is $\begin{pmatrix}0&1\\1&0\end{pmatrix}$ (deterministic alternation), whose unique stationary distribution is uniform, $(0.5,0.5)$.</p>
+    <p><strong>Chain C — $\pi=(0,0,0,0.5,0.5)$.</strong> $A,B,C$ are transient ($\pi=0$). Restricted to $\{D,E\}$, $P=\begin{pmatrix}0.6&0.4\\0.4&0.6\end{pmatrix}$ — symmetric, so its stationary distribution is uniform, $(0.5,0.5)$.</p>
+  </div>
+
+  <h4>Part 5 (3p) — Reversibility</h4>
+  <p>A chain with stationary distribution $\pi$ is <strong>reversible</strong> iff it satisfies <strong>detailed balance</strong>: $\pi_iP_{ij}=\pi_jP_{ji}$ for all $i,j$ (the probability flow $i\to j$ equals the flow $j\to i$ at stationarity).</p>
+<pre><code class="language-python"># PART 5
+problem3_A_is_reversible = True
+problem3_B_is_reversible = True
+problem3_C_is_reversible = True
+problem3_D_is_reversible = False
+</code></pre>
+
+  <div class="my-answer">
+    <div class="my-answer-label">📝 My written answer (verbatim)</div>
+    <p><strong>Chain A — reversible.</strong> Checking $\pi_iP_{ij}=\pi_jP_{ji}$ for every pair using $\pi_A=(8/13,8/39,4/39,1/13)$: e.g. $\pi_AP_{AB}=\frac{8}{13}\cdot0.2=\frac{8}{65}$ and $\pi_BP_{BA}=\frac{8}{39}\cdot0.6=\frac{8}{65}$ — equal. All other adjacent pairs (and all non-adjacent pairs, where both sides are $0$) check out, so detailed balance holds.</p>
+    <p><strong>Chain B — reversible.</strong> $\pi=(0,0.5,0.5,0)$. The only nonzero flows are $B\leftrightarrow C$: $\pi_BP_{BC}=0.5\cdot1=0.5=\pi_CP_{CB}$. All pairs involving transient states $A,D$ have $\pi=0$ on at least one side, so $0=0$ trivially. Detailed balance holds.</p>
+    <p><strong>Chain C — reversible.</strong> $\pi=(0,0,0,0.5,0.5)$. The only nonzero flow is $D\leftrightarrow E$: $\pi_DP_{DE}=0.5\cdot0.4=0.2=\pi_EP_{ED}=0.5\cdot0.4$. All other pairs are trivially $0=0$. Detailed balance holds.</p>
+    <p><strong>Chain D — NOT reversible.</strong> Check the pair $(A,B)$ using $\pi_D=(20/31,19/93,8/93,2/31)$: $\pi_AP_{AB}=\frac{20}{31}\cdot0.2\approx0.1290$ but $\pi_BP_{BA}=\frac{19}{93}\cdot0.6\approx0.1226$. These are unequal, so detailed balance fails — Chain D is not reversible. (Intuitively, the extra edge $D\to A=0.1$ that made Chain D irreducible creates a "one-way" probability current around the cycle $A\to B\to C\to D\to A$ that Chain A doesn't have.)</p>
   </div>
 
   <!-- ══ ASSIGNMENT 1 ══ -->
